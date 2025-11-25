@@ -68,14 +68,11 @@ async function buildProject() {
     redisService.publishLog("INFO: Running npm run build...");
 
     await runCommand("npm", ["run", "build"], outputPathDir);
-
-    console.log("INFO: Running next export...");
-    redisService.publishLog("INFO: Running next export...");
-    await runCommand("npx", ["next", "export"], outputPathDir);
 }
 
 async function uploadFiles() {
-    const distFolderPath = path.join(outputPathDir, "out");
+    const distFolderPath = path.join(outputPathDir, "dist");
+    const projectId = process.env.PROJECT_ID;
 
     if (!existsSync(distFolderPath)) {
         throw new Error("dist folder does not exist. Build may have failed.");
@@ -88,14 +85,13 @@ async function uploadFiles() {
 
         if (lstatSync(filePath).isDirectory()) continue;
 
-        await azureBlobService.uploadToBlob(filePath, file);
+        await azureBlobService.uploadToBlob(filePath, file, projectId);
 
         const msg = `Uploaded: ${file}`;
         console.log(msg);
         redisService.publishLog(msg);
     }
 }
-
 
 
 async function main() {
