@@ -1,0 +1,17 @@
+
+docker network create mynet
+
+
+docker run -d --name myredis --network mynet redis
+
+docker build -t vercel-task-runner .
+
+docker run -d --name vercel-task-runner --network mynet --env-file .env vercel-task-runner
+
+
+docker exec -it vercel-task-runner printenv
+
+
+docker stop vercel-task-runner
+
+docker rm vercel-task-runner

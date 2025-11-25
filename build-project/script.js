@@ -1,77 +1,122 @@
-import { exec } from "child_process";
-import { lstatSync, readdirSync } from "fs";
+import { exec, spawn } from "child_process";
+import { existsSync, lstatSync, readdirSync } from "fs";
 import path from "path";
-import S3Service from "./s3";
-import { S3Client } from "@aws-sdk/client-s3";
-import RedisService from "./redis";
+import RedisService from "./redis.js";
 import Redis from "ioredis";
+import { BlobServiceClient } from "@azure/storage-blob";
+import AzureBlobService from "./azureBlob.js";
+import { fileURLToPath } from "url";
 
 /* following functions need to be implemented:
 1. cd into repo
 2. run npm install
 3. run npm build
-4. push the build to s3
+4. push the build to azure blob storage
 */
 
-const s3Client = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-    }
-})
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const outputPathDir = path.join(__dirname, "output");
 
-const s3Service = new S3Service(s3Client);
 
 const redisClient = new Redis(process.env.REDIS_URL);
 
 const redisService = new RedisService(redisClient);
 
-async function buildProject() {
-    try {
-        const outputPathDir = path.join(__dirname, "output");
+const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
 
-        const p = exec(`cd ${outputPathDir} && npm install && npm run build`, (error, stdout, stderr) => {
-            if (error) {
-                redisService.publishLog(error.message);
-                return;
-            }
-            if (stderr) {
-                redisService.publishLog(stderr);
-                return;
-            }
+const azureBlobService = new AzureBlobService(blobServiceClient);
 
-            redisService.publishLog(stdout);
+function runCommand(command, args, cwd) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(command, args, {
+            cwd,
+            shell: true
         });
 
-        p.on("exit", async (code) => {
-            const distFolderPath = path.join(outputPathDir, "dist");
+        // LIVE stdout log
+        child.stdout.on("data", (data) => {
+            const text = data.toString();
+            console.log(text);
+            redisService.publishLog(text);
+        });
 
-            const distFolderContents = readdirSync(distFolderPath, { recursive: true });
+        // LIVE stderr log
+        child.stderr.on("data", (data) => {
+            const text = data.toString();
+            console.error(text);
+            redisService.publishLog(text);
+        });
 
-            for (let i = 0; i < distFolderContents.length; i++) {
-                const file = distFolderContents[i];
-                const filePath = path.join(distFolderPath, file);
-                if (lstatSync(filePath).isDirectory()) {
-                    continue;
-                }
-
-                await s3Service.uploadToS3(filePath, file);
-
+        child.on("close", (code) => {
+            if (code !== 0) {
+                reject(new Error(`${command} exited with code ${code}`));
+            } else {
+                resolve();
             }
-        })
-    } catch (error) {
-        redisService.publishLog(error.message);
+        });
+    });
+}
+
+async function buildProject() {
+    console.log("INFO: Running npm install...");
+    redisService.publishLog("INFO: Running npm install...");
+
+    await runCommand("npm", ["install"], outputPathDir);
+
+    console.log("INFO: Running npm run build...");
+    redisService.publishLog("INFO: Running npm run build...");
+
+    await runCommand("npm", ["run", "build"], outputPathDir);
+
+    console.log("INFO: Running next export...");
+    redisService.publishLog("INFO: Running next export...");
+    await runCommand("npx", ["next", "export"], outputPathDir);
+}
+
+async function uploadFiles() {
+    const distFolderPath = path.join(outputPathDir, "out");
+
+    if (!existsSync(distFolderPath)) {
+        throw new Error("dist folder does not exist. Build may have failed.");
+    }
+
+    const files = readdirSync(distFolderPath, { recursive: true });
+
+    for (const file of files) {
+        const filePath = path.join(distFolderPath, file);
+
+        if (lstatSync(filePath).isDirectory()) continue;
+
+        await azureBlobService.uploadToBlob(filePath, file);
+
+        const msg = `Uploaded: ${file}`;
+        console.log(msg);
+        redisService.publishLog(msg);
     }
 }
 
 
 
 async function main() {
-    console.log("Building project...");
-    await buildProject();
-    console.log("Project built successfully");
-}
+    try {
+        redisService.publishLog("INFO: Starting build pipeline...");
+        console.log("INFO: Starting build pipeline...");
 
+        await buildProject();
+
+        redisService.publishLog("INFO: Build completed. Uploading artifacts...");
+        console.log("INFO: Build completed. Uploading artifacts...");
+
+        await uploadFiles();
+
+        redisService.publishLog("INFO: Pipeline completed successfully.");
+        console.log("INFO: Pipeline completed successfully.");
+
+    } catch (err) {
+        redisService.publishLog(`ERROR: ${err.message}, Pipeline failed.`);
+        console.error(`ERROR: ${err.message}, Pipeline failed.`);
+    }
+}
 
 main();
