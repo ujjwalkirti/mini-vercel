@@ -11,7 +11,7 @@ class AzureBlobService {
         const containerClient = this.blobServiceClient.getContainerClient("build-outputs");
         const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
         const fileStream = createReadStream(filePath);
-        await blockBlobClient.uploadStream(fileStream, { blobHTTPHeaders: { blobContentType: mime.lookup(filePath) || "application/octet-stream" } });
+        await blockBlobClient.uploadStream(fileStream, undefined, undefined, { blobHTTPHeaders: { blobContentType: mime.lookup(filePath) || "application/octet-stream" } });
     }
 }
 
