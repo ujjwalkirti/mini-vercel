@@ -1,13 +1,30 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const { ContainerInstanceManagementClient } = require("@azure/arm-containerinstance");
-const { DefaultAzureCredential } = require("@azure/identity");
 const AzureACIServiceREST = require("./azureACI");
+const { Server } = require("socket.io");
+const RedisService = require("./redis");
+const Redis = require("ioredis");
 
 dotenv.config();
 
 const app = express();
 const PORT = 9000;
+
+const redisSubscriber = new Redis(process.env.REDIS_URL);
+const redisService = new RedisService(redisSubscriber);
+
+const io = new Server({
+    cors: '*',
+});
+
+io.on('connection', (socket) => {
+    socket.on('subscribe', (channel) => {
+        socket.join(channel);
+        socket.emit('message', `Joined channel: ${channel}`);
+    });
+});
+
+io.listen(9001, () => console.log("Socket server listening on port 9001"));
 
 app.use(express.json());
 
@@ -50,5 +67,7 @@ app.post("/build", async (req, res) => {
         res.status(500).send({ error: error.message || "Internal Server Error" });
     }
 });
+
+redisService.subscribeLog((pattern, channel, message) => { io.to(channel).emit('message', message); });
 
 app.listen(PORT, () => console.log(`API server listening on port ${PORT}`));

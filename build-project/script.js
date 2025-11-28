@@ -18,6 +18,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const outputPathDir = path.join(__dirname, "output");
 
+const project_id = process.env.PROJECT_ID;
+
 
 const redisClient = new Redis(process.env.REDIS_URL);
 
@@ -38,14 +40,14 @@ function runCommand(command, args, cwd) {
         child.stdout.on("data", (data) => {
             const text = data.toString();
             console.log(text);
-            redisService.publishLog(text);
+            redisService.publishLog(`logs:${project_id}`,text);
         });
 
         // LIVE stderr log
         child.stderr.on("data", (data) => {
             const text = data.toString();
             console.error(text);
-            redisService.publishLog(text);
+            redisService.publishLog(`logs:${project_id}`,text);
         });
 
         child.on("close", (code) => {
@@ -60,12 +62,12 @@ function runCommand(command, args, cwd) {
 
 async function buildProject() {
     console.log("INFO: Running npm install...");
-    redisService.publishLog("INFO: Running npm install...");
+    redisService.publishLog(`logs:${project_id}`,"INFO: Running npm install...");
 
     await runCommand("npm", ["install"], outputPathDir);
 
     console.log("INFO: Running npm run build...");
-    redisService.publishLog("INFO: Running npm run build...");
+    redisService.publishLog(`logs:${project_id}`,"INFO: Running npm run build...");
 
     await runCommand("npm", ["run", "build"], outputPathDir);
 }
@@ -89,28 +91,28 @@ async function uploadFiles() {
 
         const msg = `Uploaded: ${file}`;
         console.log(msg);
-        redisService.publishLog(msg);
+        redisService.publishLog(`logs:${project_id}`,msg);
     }
 }
 
 
 async function main() {
     try {
-        redisService.publishLog("INFO: Starting build pipeline...");
+        redisService.publishLog(`logs:${project_id}`,"INFO: Starting build pipeline...");
         console.log("INFO: Starting build pipeline...");
 
         await buildProject();
 
-        redisService.publishLog("INFO: Build completed. Uploading artifacts...");
+        redisService.publishLog(`logs:${project_id}`,"INFO: Build completed. Uploading artifacts...");
         console.log("INFO: Build completed. Uploading artifacts...");
 
         await uploadFiles();
 
-        redisService.publishLog("INFO: Pipeline completed successfully.");
+        redisService.publishLog(`logs:${project_id}`,"INFO: Pipeline completed successfully.");
         console.log("INFO: Pipeline completed successfully.");
 
     } catch (err) {
-        redisService.publishLog(`ERROR: ${err.message}, Pipeline failed.`);
+        redisService.publishLog(`logs:${project_id}`,`ERROR: ${err.message}, Pipeline failed.`);
         console.error(`ERROR: ${err.message}, Pipeline failed.`);
     }
 }
