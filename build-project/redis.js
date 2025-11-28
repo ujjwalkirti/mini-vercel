@@ -1,12 +1,17 @@
+import Redis from "ioredis";
 
 
 class RedisService {
+    /**
+     * Creates a new RedisService instance.
+     * @param {Redis} redisClient - An instance of ioredis.
+     */
     constructor(redisClient) {
         this.redisClient = redisClient;
     }
 
-    publishLog(log) {
-        this.redisClient.publish('log', JSON.stringify({ log }));
+    async publishLog(channel, log) {
+        this.redisClient.publish(channel, log);
     }
 
 
