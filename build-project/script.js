@@ -115,6 +115,7 @@ async function main() {
         redisService.publishLog(`logs:${project_id}`,`ERROR: ${err.message}, Pipeline failed.`);
         console.error(`ERROR: ${err.message}, Pipeline failed.`);
     }
+    process.exit(0);
 }
 
 main();

@@ -1,17 +1,27 @@
 
+Command to create the network:
 docker network create mynet
 
-
+Command to create the redis container:
 docker run -d --name myredis --network mynet redis
 
+Command to build the image:
 docker build -t vercel-task-runner .
 
+Command to run the container:
 docker run -d --name vercel-task-runner --network mynet --env-file .env vercel-task-runner
 
-
+Command to print the environment variables of the container:
 docker exec -it vercel-task-runner printenv
 
-
+Commands to stop and remove the container:
 docker stop vercel-task-runner
 
 docker rm vercel-task-runner
+
+
+Commands to tag and push the image to azure container registry:
+
+docker tag vercel-task-runner:latest $ACR_SERVER/mini-vercel-builder:latest
+
+docker push $ACR_SERVER/mini-vercel-builder:latest
