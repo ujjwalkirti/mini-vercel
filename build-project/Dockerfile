@@ -9,7 +9,7 @@ RUN npm install
 
 COPY . .
 
-RUN chmod +x main.sh script.js s3.js redis.js azureBlob.js
+RUN chmod +x main.sh script.js kafkaProducer.js azureBlob.js
 
 ENTRYPOINT ["/home/app/main.sh"]
 CMD ["/bin/bash"]

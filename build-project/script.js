@@ -1,11 +1,11 @@
-import { exec, spawn } from "child_process";
+import { spawn } from "child_process";
 import { existsSync, lstatSync, readdirSync } from "fs";
 import path from "path";
-import RedisService from "./redis.js";
-import Redis from "ioredis";
 import { BlobServiceClient } from "@azure/storage-blob";
 import AzureBlobService from "./azureBlob.js";
 import { fileURLToPath } from "url";
+import { Kafka } from "kafkajs";
+import KafkaProducerService from "./kafkaProducer.js";
 
 /* following functions need to be implemented:
 1. cd into repo
@@ -20,10 +20,12 @@ const outputPathDir = path.join(__dirname, "output");
 
 const project_id = process.env.PROJECT_ID;
 
+const kafkaClient = new Kafka({
+    brokers: [process.env.KAFKA_BROKERS],
+    clientId: process.env.KAFKA_CLIENT_ID
+})
 
-const redisClient = new Redis(process.env.REDIS_URL);
-
-const redisService = new RedisService(redisClient);
+const kafkaProducer = new KafkaProducerService(kafkaClient);
 
 const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
 
@@ -37,17 +39,17 @@ function runCommand(command, args, cwd) {
         });
 
         // LIVE stdout log
-        child.stdout.on("data", (data) => {
+        child.stdout.on("data", async (data) => {
             const text = data.toString();
             console.log(text);
-            redisService.publishLog(`logs:${project_id}`,text);
+            await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, text);
         });
 
         // LIVE stderr log
-        child.stderr.on("data", (data) => {
+        child.stderr.on("data", async (data) => {
             const text = data.toString();
             console.error(text);
-            redisService.publishLog(`logs:${project_id}`,text);
+            await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, text);
         });
 
         child.on("close", (code) => {
@@ -62,12 +64,12 @@ function runCommand(command, args, cwd) {
 
 async function buildProject() {
     console.log("INFO: Running npm install...");
-    redisService.publishLog(`logs:${project_id}`,"INFO: Running npm install...");
+    await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, "INFO: Running npm install...");
 
     await runCommand("npm", ["install"], outputPathDir);
 
     console.log("INFO: Running npm run build...");
-    redisService.publishLog(`logs:${project_id}`,"INFO: Running npm run build...");
+    await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, "INFO: Running npm run build...");
 
     await runCommand("npm", ["run", "build"], outputPathDir);
 }
@@ -91,31 +93,36 @@ async function uploadFiles() {
 
         const msg = `Uploaded: ${file}`;
         console.log(msg);
-        redisService.publishLog(`logs:${project_id}`,msg);
+        await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, msg);
     }
 }
 
 
 async function main() {
+    await kafkaProducer.connect();
     try {
-        redisService.publishLog(`logs:${project_id}`,"INFO: Starting build pipeline...");
+        await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, "INFO: Starting build pipeline...");
         console.log("INFO: Starting build pipeline...");
 
         await buildProject();
 
-        redisService.publishLog(`logs:${project_id}`,"INFO: Build completed. Uploading artifacts...");
+        await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, "INFO: Build completed. Uploading artifacts...");
         console.log("INFO: Build completed. Uploading artifacts...");
 
         await uploadFiles();
 
-        redisService.publishLog(`logs:${project_id}`,"INFO: Pipeline completed successfully.");
+        await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, "INFO: Pipeline completed successfully.");
         console.log("INFO: Pipeline completed successfully.");
 
     } catch (err) {
-        redisService.publishLog(`logs:${project_id}`,`ERROR: ${err.message}, Pipeline failed.`);
+        await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, `ERROR: ${err.message}, Pipeline failed.`);
         console.error(`ERROR: ${err.message}, Pipeline failed.`);
+    } finally {
+        await kafkaProducer.producer.disconnect();
+        console.log("Kafka producer disconnected.");
+
+        process.exit(0);
     }
-    process.exit(0);
 }
 
 main();
