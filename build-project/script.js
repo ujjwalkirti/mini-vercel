@@ -20,10 +20,11 @@ const outputPathDir = path.join(__dirname, "output");
 
 const project_id = process.env.PROJECT_ID;
 
+
 const kafkaClient = new Kafka({
-    brokers: [process.env.KAFKA_BROKERS],
-    clientId: process.env.KAFKA_CLIENT_ID
-})
+    clientId: process.env.KAFKA_CLIENT_ID,
+    brokers: process.env.KAFKA_BROKERS.split(',').map(b => b.trim())
+});
 
 const kafkaProducer = new KafkaProducerService(kafkaClient);
 
@@ -96,7 +97,6 @@ async function uploadFiles() {
         await kafkaProducer.generateMessage('mini-vercel-build-logs', project_id, msg);
     }
 }
-
 
 async function main() {
     await kafkaProducer.connect();

@@ -1,4 +1,4 @@
-const { Kafka } = require('kafkajs')
+import { Kafka } from "kafkajs";
 
 class KafkaProducerService {
     /**
@@ -47,4 +47,4 @@ class KafkaProducerService {
     }
 }
 
-module.exports = KafkaProducerService
+export default KafkaProducerService
