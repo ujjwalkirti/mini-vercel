@@ -4,7 +4,7 @@ import path from "path";
 import { BlobServiceClient } from "@azure/storage-blob";
 import AzureBlobService from "./azureBlob.js";
 import { fileURLToPath } from "url";
-import { Kafka } from "kafkajs";
+import { Kafka, logLevel } from "kafkajs";
 import KafkaProducerService from "./kafkaProducer.js";
 
 /* following functions need to be implemented:
@@ -23,8 +23,18 @@ const project_id = process.env.PROJECT_ID;
 
 const kafkaClient = new Kafka({
     clientId: process.env.KAFKA_CLIENT_ID,
-    brokers: process.env.KAFKA_BROKERS.split(',').map(b => b.trim())
-});
+    brokers: [process.env.KAFKA_BROKERS],
+    ssl: true,
+    sasl: {
+        mechanism: "plain",
+        username: "$ConnectionString",
+        password: process.env.KAFKA_CONNECTION_STRING
+    },
+    logLevel: logLevel.DEBUG,
+    connectionTimeout: 30000,
+    requestTimeout: 30000,
+}
+);
 
 const kafkaProducer = new KafkaProducerService(kafkaClient);
 
