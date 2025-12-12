@@ -1,10 +1,9 @@
-const express = require('express');
-const httpProxy = require('http-proxy');
-
+import express from 'express';
+import httpProxy from 'http-proxy';
 
 const app = express();
 const proxy = httpProxy.createProxyServer();
-const PORT = 8000;
+const PORT = 8001;
 
 const BASE_PATH = 'https://bpaprod.blob.core.windows.net/build-outputs';
 
@@ -17,7 +16,7 @@ app.use((req, res) => {
 
 });
 
-proxy.on('proxyReq', (proxyReq, req, res) => {
+proxy.on('proxyReq', (proxyReq: any, req, res) => {
     const url = req.url;
     if (url === '/') {
         proxyReq.path += 'index.html';
