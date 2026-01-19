@@ -20,12 +20,22 @@ const outputPathDir = path.join(__dirname, "output");
 const project_id = process.env.PROJECT_ID;
 const deployment_id = process.env.DEPLOYMENT_ID;
 
+const pemPath = "/tmp/ca.pem";
+
+if (!fs.existsSync(pemPath)) {
+    fs.writeFileSync(
+        pemPath,
+        process.env.CA_PEM,
+        { mode: 0o600 }
+    );
+}
+
 
 const kafkaClient = new Kafka({
     clientId: `docker-build-server-${deployment_id}`,
     brokers: [process.env.KAFKA_BROKERS],
     ssl: {
-        ca: [readFileSync(path.join(__dirname, "ca.pem"), "utf-8")]
+        ca: [readFileSync(pemPath, "utf-8")]
     },
     sasl: {
         mechanism: "plain",
