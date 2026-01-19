@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { existsSync, lstatSync, readdirSync, readFileSync } from "fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import R2BlobService from "./r2Blob.js";
 import { fileURLToPath } from "url";
@@ -22,8 +22,8 @@ const deployment_id = process.env.DEPLOYMENT_ID;
 
 const pemPath = "/tmp/ca.pem";
 
-if (!fs.existsSync(pemPath)) {
-    fs.writeFileSync(
+if (!existsSync(pemPath)) {
+    writeFileSync(
         pemPath,
         process.env.CA_PEM,
         { mode: 0o600 }
