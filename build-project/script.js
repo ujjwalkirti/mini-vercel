@@ -1,8 +1,7 @@
 import { spawn } from "child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync } from "fs";
 import path from "path";
-import { BlobServiceClient } from "@azure/storage-blob";
-import AzureBlobService from "./azureBlob.js";
+import R2BlobService from "./r2Blob.js";
 import { fileURLToPath } from "url";
 import { Kafka, logLevel } from "kafkajs";
 import KafkaProducerService from "./kafkaProducer.js";
@@ -41,9 +40,7 @@ const kafkaClient = new Kafka({
 
 const kafkaProducer = new KafkaProducerService(kafkaClient);
 
-const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
-
-const azureBlobService = new AzureBlobService(blobServiceClient);
+const r2BlobService = new R2BlobService();
 
 function runCommand(command, args, cwd) {
     return new Promise((resolve, reject) => {
@@ -102,7 +99,7 @@ async function uploadFiles() {
 
         if (lstatSync(filePath).isDirectory()) continue;
 
-        await azureBlobService.uploadToBlob(filePath, file, project_id);
+        await r2BlobService.uploadToBlob(filePath, file, project_id);
 
         const msg = `Uploaded: ${file}`;
         console.log(msg);

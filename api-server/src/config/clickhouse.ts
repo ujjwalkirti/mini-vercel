@@ -3,7 +3,5 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const clickhouseConfig = {
-    url: process.env.CLICKHOUSE_HOST ?? "",
-    username: process.env.CLICKHOUSE_USERNAME ?? "",
-    password: process.env.CLICKHOUSE_PASSWORD ?? "",
+    url: `https://${process.env.CLICKHOUSE_USERNAME}:${process.env.CLICKHOUSE_PASSWORD}@${process.env.CLICKHOUSE_HOST}:${process.env.CLICKHOUSE_PORT}/${process.env.CLICKHOUSE_DATABASE}`
 };

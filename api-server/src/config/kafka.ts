@@ -1,9 +1,12 @@
 import dotenv from "dotenv";
 import { logLevel } from "kafkajs";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import path from "path";
 
 dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const kafkaConfig = {
     clientId: `api-server`,
@@ -16,7 +19,7 @@ export const kafkaConfig = {
         username: process.env.KAFKA_USERNAME ?? "",
         password: process.env.KAFKA_PASSWORD ?? "",
     },
-    logLevel: logLevel.DEBUG,
+    logLevel: logLevel.ERROR,
     connectionTimeout: 30000,
     requestTimeout: 30000
 }

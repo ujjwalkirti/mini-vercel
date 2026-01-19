@@ -37,6 +37,7 @@ io.listen(9090, (() => {
     console.log("Socket server listening on port 9001");
 }) as any);
 
+
 const clickHouseClient = createClient(clickhouseConfig);
 
 const clickHouseService = new ClickHouseService(clickHouseClient);
@@ -107,13 +108,14 @@ app.post("/deploy", async (req, res) => {
         const envVars = [
             { name: "PROJECT_ID", value: project_id },
             { name: "GIT_REPOSITORY_URL", value: process.env.GIT_REPOSITORY_URL },
-            {
-                name: "AZURE_STORAGE_CONNECTION_STRING",
-                value: azureACIConfig.storageConnectionString,
-            },
             { name: "KAFKA_BROKERS", value: process.env.KAFKA_BROKERS },
             { name: "KAFKA_CLIENT_ID", value: process.env.KAFKA_CLIENT_ID },
-            { name: "KAFKA_CONNECTION_STRING", value: process.env.KAFKA_CONNECTION_STRING },
+            { name: "KAFKA_USERNAME", value: process.env.KAFKA_USERNAME },
+            { name: "KAFKA_PASSWORD", value: process.env.KAFKA_PASSWORD },
+            { name: "R2_ACCOUNT_ID", value: process.env.R2_ACCOUNT_ID },
+            { name: "R2_ACCESS_KEY_ID", value: process.env.R2_ACCESS_KEY_ID },
+            { name: "R2_SECRET_ACCESS_KEY", value: process.env.R2_SECRET_ACCESS_KEY },
+            { name: "R2_BUCKET_NAME", value: process.env.R2_BUCKET_NAME },
             { name: "DEPLOYMENT_ID", value: deployment.id },
         ];
 
