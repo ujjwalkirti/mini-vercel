@@ -12,6 +12,10 @@ import { clickhouseConfig } from "./config/clickhouse";
 import { azureACIConfig } from "./config/azure";
 import { kafkaConfig } from "./config/kafka";
 import { prismaClient } from "./lib/prisma";
+import { ECSClient } from "@aws-sdk/client-ecs";
+import { awsConfig } from "./config/aws";
+import AWSECSService from "./awsECS";
+import { ecsConfig } from "./config/ecs";
 
 dotenv.config();
 
@@ -21,6 +25,12 @@ const PORT = 9000;
 const kafkaClient = new Kafka(kafkaConfig);
 
 const kafkaConsumer = new KafkaConsumerService(kafkaClient, "mini-vercel-build-logs");
+
+const ecsClient = new ECSClient({
+    credentials: awsConfig
+});
+
+const awsECSService = new AWSECSService(ecsClient);
 
 const io = new Server({
     cors: "*",
@@ -107,7 +117,7 @@ app.post("/deploy", async (req, res) => {
 
         const envVars = [
             { name: "PROJECT_ID", value: project_id },
-            { name: "GIT_REPOSITORY_URL", value: process.env.GIT_REPOSITORY_URL },
+            { name: "GIT_REPOSITORY_URL", value: project.gitURL },
             { name: "KAFKA_BROKERS", value: process.env.KAFKA_BROKERS },
             { name: "KAFKA_CLIENT_ID", value: process.env.KAFKA_CLIENT_ID },
             { name: "KAFKA_USERNAME", value: process.env.KAFKA_USERNAME },
@@ -119,19 +129,26 @@ app.post("/deploy", async (req, res) => {
             { name: "DEPLOYMENT_ID", value: deployment.id },
         ];
 
-        // await azureACIServiceREST.startACI(envVars, azureACIConfig.resourceGroup);
+        const ecsTaskProps = {
+            cluster: ecsConfig.cluster,
+            taskDefinition: ecsConfig.taskDefinition,
+            image: ecsConfig.imageName,
+            envVars: envVars,
+            subnets: ecsConfig.subnets,
+            securityGroups: ecsConfig.securityGroups,
+            assignPublicIp: ecsConfig.assignPublicIp,
+            launchType: ecsConfig.launchType,
+            count: ecsConfig.count
+        }
 
-        await azureACIServiceSDK.startACI(
-            envVars as any,
-            azureACIConfig.resourceGroup ?? ""
-        );
+        await awsECSService.runTask(ecsTaskProps);
 
         res.status(200).send({
             success: true,
             message: "Build queued successfully",
             data: {
                 status: "Queued",
-                url: `${project_id}.localhost:8000`,
+                url: `${project_id}.localhost:8001`,
             },
         });
     } catch (error: any) {

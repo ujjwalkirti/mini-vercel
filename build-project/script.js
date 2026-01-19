@@ -42,7 +42,7 @@ const kafkaClient = new Kafka({
         username: process.env.KAFKA_USERNAME,
         password: process.env.KAFKA_PASSWORD
     },
-    logLevel: logLevel.DEBUG,
+    logLevel: logLevel.ERROR,
     connectionTimeout: 30000,
     requestTimeout: 30000
 }
