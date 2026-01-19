@@ -43,8 +43,8 @@ const clickHouseService = new ClickHouseService(clickHouseClient);
 
 app.use(express.json());
 
-const azureACIServiceREST = new AzureACIServiceREST(azureACIConfig);
-// const azureACIServiceSDK = new AzureACIServiceSDK(azureACIConfig);
+// const azureACIServiceREST = new AzureACIServiceREST(azureACIConfig);
+const azureACIServiceSDK = new AzureACIServiceSDK(azureACIConfig);
 
 app.post("/add-project", async (req, res) => {
     const { name, github_url } = req.body;
@@ -103,6 +103,7 @@ app.post("/deploy", async (req, res) => {
                 project: { connect: { id: project_id } }
             }
         })
+
         const envVars = [
             { name: "PROJECT_ID", value: project_id },
             { name: "GIT_REPOSITORY_URL", value: process.env.GIT_REPOSITORY_URL },
@@ -112,15 +113,16 @@ app.post("/deploy", async (req, res) => {
             },
             { name: "KAFKA_BROKERS", value: process.env.KAFKA_BROKERS },
             { name: "KAFKA_CLIENT_ID", value: process.env.KAFKA_CLIENT_ID },
+            { name: "KAFKA_CONNECTION_STRING", value: process.env.KAFKA_CONNECTION_STRING },
             { name: "DEPLOYMENT_ID", value: deployment.id },
         ];
 
-        await azureACIServiceREST.startACI(envVars, azureACIConfig.resourceGroup);
+        // await azureACIServiceREST.startACI(envVars, azureACIConfig.resourceGroup);
 
-        // await azureACIServiceSDK.startACI(
-        //     envVars as any,
-        //     process.env.AZURE_RESOURCE_GROUP ?? ""
-        // );
+        await azureACIServiceSDK.startACI(
+            envVars as any,
+            azureACIConfig.resourceGroup ?? ""
+        );
 
         res.status(200).send({
             success: true,
@@ -146,8 +148,11 @@ kafkaConsumer.listenForMessagesInBatch('mini-vercel-build-logs', async (message)
     const { key, value } = message;
     if (!key || !value) return;
     try {
-        // const data = JSON.parse(value);
-        // io.to(key).emit('message', data);
+        const { project_id, deployment_id, log } = JSON.parse(value.toString());
+
+        const { query_id } = await clickHouseService.insertLog('log_events', { deployment_id, log });
+
+        console.log(query_id)
     } catch (error) {
         console.error(error);
     }

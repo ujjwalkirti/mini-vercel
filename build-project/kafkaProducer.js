@@ -14,18 +14,19 @@ class KafkaProducerService {
         await this.producer.connect()
     }
 
+
     /**
-     * Sends a single message to a Kafka topic.
-     * @param {string} topic - The name of the Kafka topic to send the message to.
-     * @param {string} key - The key of the message to send.
-     * @param {string} message - The value of the message to send.
-     * @returns {Promise<void>} A promise that resolves when the message has been sent.
+     * Generates a message to be sent to Kafka.
+     * @param {string} topic - The topic to send the message to.
+     * @param {object} keys - The keys to be included in the message.
+     * @param {string} message - The message to be included in the message.
+     * @returns {Promise<void>} A promise resolving when the message has been sent.
      */
-    async generateMessage(topic, key, message) {
+    async generateMessage(topic, keys, message) {
         await this.producer.send({
             topic: topic,
             messages: [
-                { key: key, value: JSON.stringify(message) }
+                { key: 'log', value: JSON.stringify({ ...keys, log: message }) }
             ]
         })
     }

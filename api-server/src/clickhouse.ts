@@ -13,13 +13,13 @@ export default class ClickHouseService {
         this.clickHouseClient = clickHouseClient;
     }
 
-    async insertData(
+    async insertLog(
         tableName: string,
         values: ClickHouseInsertValues
-    ): Promise<string | undefined> {
+    ): Promise<{ query_id: string }> {
         const { deployment_id, log } = values;
 
-        if (!deployment_id || !log) return;
+        if (!deployment_id || !log) return { query_id: "" };
 
         const { query_id } = await this.clickHouseClient.insert({
             table: tableName,
@@ -33,6 +33,6 @@ export default class ClickHouseService {
             format: "JSONEachRow"
         });
 
-        return query_id;
+        return { query_id };
     }
 }

@@ -3,8 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const clickhouseConfig = {
-    host: process.env.CLICKHOUSE_HOST ?? "",
-    database: process.env.CLICKHOUSE_DATABASE ?? "",
-    user: process.env.CLICKHOUSE_USER ?? "",
+    url: process.env.CLICKHOUSE_HOST ?? "",
+    username: process.env.CLICKHOUSE_USERNAME ?? "",
     password: process.env.CLICKHOUSE_PASSWORD ?? "",
 };
