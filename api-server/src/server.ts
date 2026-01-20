@@ -1,15 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
-import AzureACIServiceREST from "./azureACIREST";
 import { Server } from "socket.io";
 import { Kafka } from "kafkajs";
 import KafkaConsumerService from "./kafkaConsumer";
 import { createClient } from "@clickhouse/client";
 import ClickHouseService from "./clickhouse";
 import { generateSlug } from "random-word-slugs";
-import AzureACIServiceSDK from "./azureACISDK";
 import { clickhouseConfig } from "./config/clickhouse";
-import { azureACIConfig } from "./config/azure";
 import { kafkaConfig } from "./config/kafka";
 import { prismaClient } from "./lib/prisma";
 import { ECSClient } from "@aws-sdk/client-ecs";
@@ -47,15 +44,12 @@ io.listen(9090, (() => {
     console.log("Socket server listening on port 9001");
 }) as any);
 
-
+console.log(clickhouseConfig.url);
 const clickHouseClient = createClient(clickhouseConfig);
 
 const clickHouseService = new ClickHouseService(clickHouseClient);
 
 app.use(express.json());
-
-// const azureACIServiceREST = new AzureACIServiceREST(azureACIConfig);
-const azureACIServiceSDK = new AzureACIServiceSDK(azureACIConfig);
 
 app.post("/add-project", async (req, res) => {
     const { name, github_url } = req.body;
@@ -168,7 +162,7 @@ kafkaConsumer.listenForMessagesInBatch('mini-vercel-build-logs', async (message)
     if (!key || !value) return;
     try {
         const { project_id, deployment_id, log } = JSON.parse(value.toString());
-
+        console.log({ project_id, deployment_id, log });
         const { query_id } = await clickHouseService.insertLog('log_events', { deployment_id, log });
 
         console.log(query_id)
