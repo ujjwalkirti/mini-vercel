@@ -1,11 +1,14 @@
 import express from 'express';
 import httpProxy from 'http-proxy';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const proxy = httpProxy.createProxyServer();
 const PORT = 8001;
 
-const BASE_PATH = 'https://bpaprod.blob.core.windows.net/build-outputs';
+const BASE_PATH = process.env.R2_PUBLIC_URL || 'https://pub-xxx.r2.dev';
 
 app.use((req, res) => {
     const hostname = req.hostname;

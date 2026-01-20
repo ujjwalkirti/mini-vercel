@@ -114,7 +114,7 @@ export default class AzureACIServiceSDK {
             await this.containerInstanceManagementClient.containerGroups.beginCreateOrUpdateAndWait(
                 resourceGroup,
                 this.containerGroupName,
-                containerGroup as any // Azure SDK types are unstrict; this is common practice
+                containerGroup as any
             );
         } catch (error: any) {
             console.error("ERROR:", error.response?.data || error.message);

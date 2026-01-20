@@ -1,5 +1,5 @@
 import { Kafka } from "kafkajs";
-import type { Consumer, EachBatchPayload, KafkaMessage } from "kafkajs";
+import type { Consumer, EachBatchPayload, KafkaMessage, Offsets } from "kafkajs";
 
 export type KafkaBatchMessageCallback = (message: KafkaMessage) => Promise<void> | void;
 
@@ -33,7 +33,7 @@ export default class KafkaConsumerService {
                     await callback(message);
 
                     resolveOffset(message.offset);
-                    // await commitOffsetsIfNecessary(message.offset);
+                    await commitOffsetsIfNecessary(message.offset as unknown as Offsets);
                     await heartbeat();
                 }
             }
