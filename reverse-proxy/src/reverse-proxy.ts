@@ -1,6 +1,7 @@
 import express from 'express';
 import httpProxy from 'http-proxy';
 import dotenv from 'dotenv';
+import { prismaClient } from './lib/prisma';
 
 dotenv.config();
 
@@ -10,13 +11,30 @@ const PORT = 8001;
 
 const BASE_PATH = process.env.R2_PUBLIC_URL || 'https://pub-xxx.r2.dev';
 
-app.use((req, res) => {
+app.use(async (req, res) => {
     const hostname = req.hostname;
     const subdomain = hostname.split('.')[0];
-    const blobUrl = `${BASE_PATH}/${subdomain}`;
+
+    // Find the project by subdomain and get the latest READY deployment
+    const project = await prismaClient.project.findFirst({
+        where: { subDomain: subdomain },
+        include: {
+            Deployment: {
+                where: { status: 'READY' },
+                orderBy: { createdAt: 'desc' },
+                take: 1
+            }
+        }
+    });
+
+    if (!project || project.Deployment.length === 0) {
+        res.status(404).send('Deployment not found');
+        return;
+    }
+
+    const blobUrl = `${BASE_PATH}/${project.id}`;
 
     proxy.web(req, res, { target: blobUrl, changeOrigin: true });
-
 });
 
 proxy.on('proxyReq', (proxyReq: any, req, res) => {
