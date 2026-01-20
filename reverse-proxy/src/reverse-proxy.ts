@@ -11,6 +11,11 @@ const PORT = 8001;
 
 const BASE_PATH = process.env.R2_PUBLIC_URL || 'https://pub-xxx.r2.dev';
 
+// Health check endpoint
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok' });
+});
+
 app.use(async (req, res) => {
     const hostname = req.hostname;
     const subdomain = hostname.split('.')[0];
