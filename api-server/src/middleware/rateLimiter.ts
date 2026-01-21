@@ -1,7 +1,7 @@
 import rateLimit, { type RateLimitRequestHandler, type Options } from 'express-rate-limit';
 import type { Request, Response } from 'express';
-import { ApiResponseUtil } from '../utils/response';
-import { logger } from '../utils/logger';
+import { ApiResponseUtil } from '../utils/response.js';
+import { logger } from '../utils/logger.js';
 
 const createRateLimiter = (options: Partial<Options>): RateLimitRequestHandler => {
     return rateLimit({

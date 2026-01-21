@@ -1,6 +1,6 @@
 import { DefaultAzureCredential } from "@azure/identity";
 import axios from "axios";
-import { AzureACISDKConfig } from "./azureACISDK";
+import { AzureACISDKConfig } from "./azureACISDK.js";
 
 export interface EnvVar {
     name: string;

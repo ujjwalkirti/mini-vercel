@@ -1,5 +1,5 @@
 import { AssignPublicIp, ECSClient, LaunchType, RunTaskCommand } from "@aws-sdk/client-ecs";
-import { EnvVar } from "./azureACIREST";
+import { EnvVar } from "./azureACIREST.js";
 
 interface ECSTask {
     cluster: string,
