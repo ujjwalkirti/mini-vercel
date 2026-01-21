@@ -23,7 +23,7 @@ export class ProjectController {
     }
 
     static async getById(req: AuthenticatedRequest, res: Response): Promise<void> {
-        const { id } = req.params;
+        const id = req.params.id as string;
 
         const project = await prismaClient.project.findFirst({
             where: {
@@ -62,7 +62,7 @@ export class ProjectController {
     }
 
     static async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
-        const { id } = req.params;
+        const id = req.params.id as string;
 
         const project = await prismaClient.project.findFirst({
             where: {

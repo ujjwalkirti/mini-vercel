@@ -23,7 +23,7 @@ export class DeploymentController {
     }
 
     async getByProject(req: AuthenticatedRequest, res: Response): Promise<void> {
-        const { projectId } = req.params;
+        const projectId = req.params.projectId as string;
 
         const project = await prismaClient.project.findFirst({
             where: {
@@ -45,7 +45,7 @@ export class DeploymentController {
     }
 
     async getById(req: AuthenticatedRequest, res: Response): Promise<void> {
-        const { id } = req.params;
+        const id = req.params.id as string;
 
         const deployment = await prismaClient.deployment.findUnique({
             where: { id },
@@ -128,7 +128,7 @@ export class DeploymentController {
     }
 
     async getLogs(req: AuthenticatedRequest, res: Response): Promise<void> {
-        const { id } = req.params;
+        const id = req.params.id as string;
 
         const deployment = await prismaClient.deployment.findUnique({
             where: { id },
