@@ -15,8 +15,8 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src/
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client (dummy URL - only needed for TypeScript compilation)
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Build TypeScript
 RUN npm run build
@@ -38,9 +38,6 @@ COPY prisma.config.ts ./
 # Install production dependencies only
 RUN npm ci --only=production
 
-# Generate Prisma client in production
-RUN npx prisma generate
-
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/generated ./generated
@@ -59,4 +56,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD node -e "fetch('http://localhost:8001/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 # Start the application
-CMD ["node", "dist/reverse-proxy.js"]
+CMD ["sh", "-c", "npx prisma generate && node dist/src/reverse-proxy.js"]

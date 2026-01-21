@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import healthRoutes from './health.routes';
-import projectRoutes from './project.routes';
-import { createDeploymentRoutes } from './deployment.routes';
-import { DeploymentController } from '../controllers';
-import { apiRateLimiter } from '../middleware';
-import type AWSECSService from '../awsECS';
+import healthRoutes from './health.routes.js';
+import projectRoutes from './project.routes.js';
+import { createDeploymentRoutes } from './deployment.routes.js';
+import { DeploymentController } from '../controllers/index.js';
+import { apiRateLimiter } from '../middleware/index.js';
+import type AWSECSService from '../awsECS.js';
 import type { ClickHouseClient } from '@clickhouse/client';
 
 interface RouteDependencies {

@@ -2,10 +2,10 @@ export {
     createProjectValidator,
     projectIdValidator,
     updateProjectValidator
-} from './project.validator';
+} from './project.validator.js';
 
 export {
     createDeploymentValidator,
     deploymentIdValidator,
     projectDeploymentsValidator
-} from './deployment.validator';
+} from './deployment.validator.js';

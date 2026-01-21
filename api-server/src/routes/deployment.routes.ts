@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import type { DeploymentController } from '../controllers';
-import { authMiddleware, asyncHandler, validate, deployRateLimiter, logsRateLimiter } from '../middleware';
-import { createDeploymentValidator, deploymentIdValidator, projectDeploymentsValidator } from '../validators';
+import type { DeploymentController } from '../controllers/index.js';
+import { authMiddleware, asyncHandler, validate, deployRateLimiter, logsRateLimiter } from '../middleware/index.js';
+import { createDeploymentValidator, deploymentIdValidator, projectDeploymentsValidator } from '../validators/index.js';
 
 export const createDeploymentRoutes = (deploymentController: DeploymentController): Router => {
     const router = Router();

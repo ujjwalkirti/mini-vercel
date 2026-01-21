@@ -1,7 +1,7 @@
 import express from 'express';
 import httpProxy from 'http-proxy';
 import dotenv from 'dotenv';
-import { prismaClient } from './lib/prisma';
+import { prismaClient } from './lib/prisma.js';
 
 dotenv.config();
 

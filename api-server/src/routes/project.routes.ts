@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { ProjectController } from '../controllers';
-import { authMiddleware, asyncHandler, validate } from '../middleware';
-import { createProjectValidator, projectIdValidator } from '../validators';
+import { ProjectController } from '../controllers/index.js';
+import { authMiddleware, asyncHandler, validate } from '../middleware/index.js';
+import { createProjectValidator, projectIdValidator } from '../validators/index.js';
 
 const router = Router();
 

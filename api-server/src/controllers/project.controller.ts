@@ -1,10 +1,10 @@
 import type { Response } from 'express';
-import { prismaClient } from '../lib/prisma';
+import { prismaClient } from '../lib/prisma.js';
 import { generateSlug } from 'random-word-slugs';
-import type { AuthenticatedRequest } from '../types';
-import { ApiResponseUtil } from '../utils/response';
-import { logger } from '../utils/logger';
-import { NotFoundError } from '../middleware/errorHandler';
+import type { AuthenticatedRequest } from '../types/index.js';
+import { ApiResponseUtil } from '../utils/response.js';
+import { logger } from '../utils/logger.js';
+import { NotFoundError } from '../middleware/errorHandler.js';
 
 export class ProjectController {
     static async getAll(req: AuthenticatedRequest, res: Response): Promise<void> {

@@ -1,11 +1,11 @@
 import type { Response } from 'express';
-import { prismaClient } from '../lib/prisma';
-import type { AuthenticatedRequest } from '../types';
-import { ApiResponseUtil } from '../utils/response';
-import { logger } from '../utils/logger';
-import { NotFoundError, ForbiddenError } from '../middleware/errorHandler';
-import { ecsConfig } from '../config/ecs';
-import type AWSECSService from '../awsECS';
+import { prismaClient } from '../lib/prisma.js';
+import type { AuthenticatedRequest } from '../types/index.js';
+import { ApiResponseUtil } from '../utils/response.js';
+import { logger } from '../utils/logger.js';
+import { NotFoundError, ForbiddenError } from '../middleware/errorHandler.js';
+import { ecsConfig } from '../config/ecs.js';
+import type AWSECSService from '../awsECS.js';
 import type { ClickHouseClient } from '@clickhouse/client';
 
 interface DeploymentControllerDependencies {

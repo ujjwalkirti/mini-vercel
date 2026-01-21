@@ -4,23 +4,23 @@ import { Kafka } from 'kafkajs';
 import { createClient } from '@clickhouse/client';
 import { ECSClient } from '@aws-sdk/client-ecs';
 
-import { createRouter } from './routes';
+import { createRouter } from './routes/index.js';
 import {
     corsMiddleware,
     errorHandler,
     notFoundHandler,
     requestLogger
-} from './middleware';
-import { logger } from './utils/logger';
+} from './middleware/index.js';
+import { logger } from './utils/logger.js';
 
-import KafkaConsumerService from './kafkaConsumer';
-import ClickHouseService from './clickhouse';
-import AWSECSService from './awsECS';
+import KafkaConsumerService from './kafkaConsumer.js';
+import ClickHouseService from './clickhouse.js';
+import AWSECSService from './awsECS.js';
 
-import { clickhouseConfig } from './config/clickhouse';
-import { kafkaConfig } from './config/kafka';
-import { awsConfig } from './config/aws';
-import { prismaClient } from './lib/prisma';
+import { clickhouseConfig } from './config/clickhouse.js';
+import { kafkaConfig } from './config/kafka.js';
+import { awsConfig } from './config/aws.js';
+import { prismaClient } from './lib/prisma.js';
 
 dotenv.config();
 

@@ -1,8 +1,8 @@
 import type { Response, NextFunction } from 'express';
-import { supabaseAdmin } from '../config/supabase';
-import type { AuthenticatedRequest } from '../types';
-import { ApiResponseUtil } from '../utils/response';
-import { logger } from '../utils/logger';
+import { supabaseAdmin } from '../config/supabase.js';
+import type { AuthenticatedRequest } from '../types/index.js';
+import { ApiResponseUtil } from '../utils/response.js';
+import { logger } from '../utils/logger.js';
 
 export const authMiddleware = async (
     req: AuthenticatedRequest,
