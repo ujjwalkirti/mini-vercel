@@ -45,9 +45,6 @@ RUN npx prisma generate
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/generated ./generated
 
-# Copy Kafka CA certificate if exists
-COPY --chown=nodejs:nodejs src/config/ca.pem ./dist/config/ca.pem
-
 # Set ownership
 RUN chown -R nodejs:nodejs /app
 
