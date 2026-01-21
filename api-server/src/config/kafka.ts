@@ -6,13 +6,17 @@ import path from "path";
 
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
+const kafkaCA = readFileSync(
+    "/secrets/kafka-consumer-ca",
+    "utf-8"
+);
 
 export const kafkaConfig = {
     clientId: `api-server`,
     brokers: [process.env.KAFKA_BROKERS ?? ""],
     ssl: {
-        ca: [readFileSync(path.join(__dirname, "ca.pem"), "utf-8")]
+        ca: [kafkaCA],
     },
     sasl: {
         mechanism: "plain" as const,
