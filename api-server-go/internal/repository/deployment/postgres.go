@@ -1,4 +1,4 @@
-package deployment
+package repository
 
 import (
 	"context"
@@ -24,5 +24,10 @@ func (r *Repository) Create(ctx context.Context, d *domain.Deployment) error {
 		d.ProjectID,
 		d.Status,
 	)
+	return err
+}
+
+func (r *Repository) DeleteByProjectID(ctx context.Context, projectID string) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM deployments WHERE project_id = $1`, projectID)
 	return err
 }

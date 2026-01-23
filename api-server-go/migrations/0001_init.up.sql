@@ -1,3 +1,4 @@
+-- Active: 1756357892734@@127.0.0.1@5432@minivercel
 CREATE TYPE deployment_status AS ENUM (
   'NOT_STARTED',
   'QUEUED',

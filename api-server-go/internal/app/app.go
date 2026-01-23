@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/config"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/db"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/router"
 )
@@ -17,6 +18,10 @@ func New() *App {
 	database, err := db.Connect()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if err := config.InitSupabase(); err != nil {
+		log.Fatal("Failed to initialize Supabase:", err)
 	}
 
 	r := router.New(database)

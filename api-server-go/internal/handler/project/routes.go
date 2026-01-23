@@ -4,12 +4,21 @@ import (
 	"database/sql"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/middleware"
+	deploymentRepo "github.com/ujjwalkirti/mini-vercel-api-server/internal/repository/deployment"
+	repo "github.com/ujjwalkirti/mini-vercel-api-server/internal/repository/project"
 )
 
 func Routes(db *sql.DB) chi.Router {
 	r := chi.NewRouter()
+
+	r.Use(middleware.AuthMiddleware)
+
+	repository := repo.New(db)
+	deploymentRepository := deploymentRepo.New(db)
 	h := NewHandler(
-		db,
+		repository,
+		deploymentRepository,
 	)
 
 	r.Get("/", h.GetProjects)
