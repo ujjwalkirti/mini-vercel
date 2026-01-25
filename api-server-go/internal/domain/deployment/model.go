@@ -13,9 +13,9 @@ const (
 )
 
 type Deployment struct {
-	ID        string
-	ProjectID string
-	Status    Status
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        string    `json:"id"`
+	ProjectID string    `json:"projectId"`
+	Status    Status    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }

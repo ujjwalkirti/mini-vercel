@@ -3,10 +3,13 @@ package router
 import (
 	"database/sql"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/auth"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/config"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/handler/deployment"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/handler/health"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/handler/project"
@@ -14,6 +17,13 @@ import (
 
 func New(db *sql.DB) *chi.Mux {
 	r := chi.NewRouter()
+
+	config.InitSupabase()
+
+	jwks := auth.NewJWKSCache(
+		config.SupabaseURL+"/auth/v1/.well-known/jwks.json",
+		5*time.Minute,
+	)
 
 	// Middleware
 	r.Use(middleware.Logger)
@@ -34,8 +44,8 @@ func New(db *sql.DB) *chi.Mux {
 	r.Mount("/health", health.Routes())
 
 	// Protected routes (auth required)
-	r.Mount("/projects", project.Routes(db))
-	r.Mount("/", deployment.Routes(db)) // Mounts /deploy and /deployments/* routes
+	r.Mount("/projects", project.Routes(db, jwks))
+	r.Mount("/", deployment.Routes(db, jwks)) // Mounts /deploy and /deployments/* routes
 
 	return r
 }

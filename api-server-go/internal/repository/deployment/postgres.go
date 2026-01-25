@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	domain "github.com/ujjwalkirti/mini-vercel-api-server/internal/domain/deployment"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/utils"
 )
 
 type Repository struct {
@@ -17,6 +18,11 @@ func New(db *sql.DB) *Repository {
 }
 
 func (r *Repository) Create(ctx context.Context, d *domain.Deployment) (domain.Deployment, error) {
+	// Generate UUID v4 if not provided
+	if d.ID == "" {
+		d.ID = utils.GenerateUUID()
+	}
+
 	_, err := r.db.ExecContext(
 		ctx,
 		`INSERT INTO deployments (id, project_id, status)

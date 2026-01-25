@@ -63,8 +63,8 @@ func (h *Handler) GetDeploymentsByProject(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Return deployments array (matching Express API response)
-	utils.Success(w, deployments, "Deployments fetched successfully.")
+	// Return deployments array directly (matching Express API response)
+	utils.Success(w, deployments)
 }
 
 // GetDeployment handles GET /deployments/:id
@@ -213,12 +213,9 @@ func (h *Handler) GetDeploymentLogs(w http.ResponseWriter, r *http.Request) {
 		logEvents = []logs.LogEvent{}
 	}
 
-	// Return logs response
+	// Return logs response (matching Express API response)
 	utils.Success(w, map[string]interface{}{
-		"deployment": map[string]interface{}{
-			"id":     deployment.ID,
-			"status": deployment.Status,
-		},
-		"logs": logEvents,
-	}, "Logs retrieved successfully")
+		"deployment": deployment,
+		"logs":       logEvents,
+	})
 }

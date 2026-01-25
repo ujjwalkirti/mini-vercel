@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/go-chi/chi/v5"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/auth"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/client"
 	appConfig "github.com/ujjwalkirti/mini-vercel-api-server/internal/config"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/middleware"
@@ -17,11 +18,11 @@ import (
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/logs"
 )
 
-func Routes(db *sql.DB) chi.Router {
+func Routes(db *sql.DB, jwks *auth.JWKSCache) chi.Router {
 	r := chi.NewRouter()
 
 	// Apply auth middleware to all deployment routes
-	r.Use(middleware.AuthMiddleware)
+	r.Use(middleware.AuthMiddleware(jwks))
 
 	repository := repository.New(db)
 	projectRepo := projectRepository.New(db)

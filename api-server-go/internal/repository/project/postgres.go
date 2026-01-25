@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	domain "github.com/ujjwalkirti/mini-vercel-api-server/internal/domain/project"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/utils"
 )
 
 type Repository struct {
@@ -16,6 +17,11 @@ func New(db *sql.DB) *Repository {
 }
 
 func (r *Repository) Create(ctx context.Context, p *domain.Project) error {
+	// Generate UUID v4 if not provided
+	if p.ID == "" {
+		p.ID = utils.GenerateUUID()
+	}
+
 	query := `
 		INSERT INTO projects (id, name, git_url, subdomain, custom_domain, user_id)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -47,7 +53,8 @@ func (r *Repository) ListByUser(ctx context.Context, userID string) ([]domain.Pr
 	}
 	defer rows.Close()
 
-	var projects []domain.Project
+	// Initialize as empty slice to ensure JSON serializes to [] instead of null
+	projects := make([]domain.Project, 0)
 	for rows.Next() {
 		var p domain.Project
 		if err := rows.Scan(

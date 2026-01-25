@@ -47,7 +47,7 @@ func (h *Handler) GetProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return projects array (matching Express API response)
+	// Return projects array directly (matching Express API response)
 	utils.Success(w, projects)
 }
 

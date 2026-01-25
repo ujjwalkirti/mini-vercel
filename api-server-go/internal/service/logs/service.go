@@ -10,10 +10,10 @@ import (
 
 // LogEvent represents a log entry
 type LogEvent struct {
-	EventID      string    `json:"event_id"`
-	DeploymentID string    `json:"deployment_id"`
-	Log          string    `json:"log"`
-	Timestamp    time.Time `json:"timestamp"`
+	EventID      string     `json:"event_id"`
+	DeploymentID string     `json:"deployment_id"`
+	Log          string     `json:"log"`
+	Timestamp    *time.Time `json:"timestamp,omitempty"`
 }
 
 // Service handles business logic for deployment logs
@@ -46,9 +46,11 @@ func (s *Service) GetDeploymentLogs(ctx context.Context, deploymentID string) ([
 	var logs []LogEvent
 	for rows.Next() {
 		var log LogEvent
-		if err := rows.Scan(&log.EventID, &log.DeploymentID, &log.Log, &log.Timestamp); err != nil {
+		var timestamp time.Time
+		if err := rows.Scan(&log.EventID, &log.DeploymentID, &log.Log, &timestamp); err != nil {
 			return nil, fmt.Errorf("failed to scan log row: %w", err)
 		}
+		log.Timestamp = &timestamp
 		logs = append(logs, log)
 	}
 
@@ -78,9 +80,11 @@ func (s *Service) GetDeploymentLogsWithLimit(ctx context.Context, deploymentID s
 	var logs []LogEvent
 	for rows.Next() {
 		var log LogEvent
-		if err := rows.Scan(&log.EventID, &log.DeploymentID, &log.Log, &log.Timestamp); err != nil {
+		var timestamp time.Time
+		if err := rows.Scan(&log.EventID, &log.DeploymentID, &log.Log, &timestamp); err != nil {
 			return nil, fmt.Errorf("failed to scan log row: %w", err)
 		}
+		log.Timestamp = &timestamp
 		logs = append(logs, log)
 	}
 
@@ -111,9 +115,11 @@ func (s *Service) GetLogsInTimeRange(ctx context.Context, deploymentID string, s
 	var logs []LogEvent
 	for rows.Next() {
 		var log LogEvent
-		if err := rows.Scan(&log.EventID, &log.DeploymentID, &log.Log, &log.Timestamp); err != nil {
+		var timestamp time.Time
+		if err := rows.Scan(&log.EventID, &log.DeploymentID, &log.Log, &timestamp); err != nil {
 			return nil, fmt.Errorf("failed to scan log row: %w", err)
 		}
+		log.Timestamp = &timestamp
 		logs = append(logs, log)
 	}
 
@@ -131,7 +137,14 @@ func (s *Service) InsertLog(ctx context.Context, log LogEvent) error {
 		VALUES (?, ?, ?, ?)
 	`
 
-	_, err := s.repo.ExecContext(ctx, query, log.EventID, log.DeploymentID, log.Log, log.Timestamp)
+	var timestamp time.Time
+	if log.Timestamp != nil {
+		timestamp = *log.Timestamp
+	} else {
+		timestamp = time.Now()
+	}
+
+	_, err := s.repo.ExecContext(ctx, query, log.EventID, log.DeploymentID, log.Log, timestamp)
 	if err != nil {
 		return fmt.Errorf("failed to insert log: %w", err)
 	}
