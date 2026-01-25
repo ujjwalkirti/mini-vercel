@@ -13,8 +13,6 @@ import (
 	deploymentRepository "github.com/ujjwalkirti/mini-vercel-api-server/internal/repository/deployment"
 	projectRepository "github.com/ujjwalkirti/mini-vercel-api-server/internal/repository/project"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/utils"
-
-	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -66,7 +64,7 @@ func (h *Handler) GetProject(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	// TODO: Validate UUID format for id
-	if !isValidUUID(id) {
+	if !utils.IsValidUUID(id) {
 		utils.BadRequest(w, "Invalid project ID")
 		return
 	}
@@ -169,11 +167,6 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	}, "Project updated successfully")
 }
 
-func isValidUUID(id string) bool {
-	_, err := uuid.Parse(id)
-	return err == nil
-}
-
 // DeleteProject handles DELETE /projects/:id
 // Deletes a project and all its deployments
 // Verifies user owns the project
@@ -187,7 +180,7 @@ func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	// TODO: Validate UUID format for id
-	if !isValidUUID(id) {
+	if !utils.IsValidUUID(id) {
 		utils.BadRequest(w, "Invalid project ID")
 		return
 	}
