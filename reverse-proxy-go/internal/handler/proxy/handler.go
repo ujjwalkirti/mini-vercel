@@ -30,7 +30,7 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, r *http.Request) {
 	// Extract subdomain from hostname
 	hostname := r.Host
 	subdomain := h.extractSubdomain(hostname)
-
+	log.Printf("Received request for subdomain %s", subdomain)
 	if subdomain == "" {
 		http.Error(w, "Invalid subdomain", http.StatusBadRequest)
 		return
