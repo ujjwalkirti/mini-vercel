@@ -36,9 +36,6 @@ RUN addgroup -g 1001 -S appuser && \
 # Copy binary from builder
 COPY --from=builder /app/main .
 
-# Copy CA certificate for database/Kafka TLS connections
-COPY --from=builder /app/ca.pem ./ca.pem
-
 # Copy migrations directory (if needed at runtime)
 COPY --from=builder /app/migrations ./migrations
 
