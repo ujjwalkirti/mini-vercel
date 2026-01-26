@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 
@@ -155,9 +156,7 @@ func (h *Handler) CreateDeployment(w http.ResponseWriter, r *http.Request) {
 	// TODO: Trigger AWS ECS task to build and deploy
 	_, err = h.ecsService.RunTask(r.Context(), envVars)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-
-		}
+		log.Printf("Failed to trigger ECS task: %v", err)
 		utils.InternalServerError(w, "Failed to trigger ECS task")
 		return
 	}
@@ -201,16 +200,19 @@ func (h *Handler) GetDeploymentLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query logs service for deployment logs
-	var logEvents []logs.LogEvent
+	// Always initialize as empty array to prevent null in JSON response
+	logEvents := make([]logs.LogEvent, 0)
+
 	if h.logsService != nil {
-		logEvents, err = h.logsService.GetDeploymentLogs(r.Context(), id)
+		fetchedLogs, err := h.logsService.GetDeploymentLogs(r.Context(), id)
 		if err != nil {
 			utils.InternalServerError(w, "Failed to fetch logs")
 			return
 		}
-	} else {
-		// If logs service is not configured, return empty logs
-		logEvents = []logs.LogEvent{}
+		// Only assign if we got results, otherwise keep empty array
+		if fetchedLogs != nil {
+			logEvents = fetchedLogs
+		}
 	}
 
 	// Return logs response (matching Express API response)

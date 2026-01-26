@@ -4,16 +4,16 @@ import (
 	"os"
 )
 
-var (
-	AWSAccessKey = os.Getenv("AWS_ACCESS_KEY_ID")
-	AWSSecretKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	AWSRegion    = os.Getenv("AWS_REGION")
-)
+type AWSConfig struct {
+	Region    string
+	AccessKey string
+	SecretKey string
+}
 
-func InitAWS() error {
-	if AWSAccessKey == "" || AWSSecretKey == "" || AWSRegion == "" {
-		return nil // or return error if you want to enforce these
+func GetAWSConfig() AWSConfig {
+	return AWSConfig{
+		Region:    os.Getenv("AWS_REGION"),
+		AccessKey: os.Getenv("AWS_ACCESS_KEY"),
+		SecretKey: os.Getenv("AWS_SECRET_KEY"),
 	}
-
-	return nil
 }

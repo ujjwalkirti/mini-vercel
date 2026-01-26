@@ -182,3 +182,27 @@ func (s *Service) DeleteDeploymentLogs(ctx context.Context, deploymentID string)
 
 	return nil
 }
+
+// Insert is a simpler method that inserts a log with just deployment_id and log text
+// Similar to the Express API server's insertLog method
+func (s *Service) Insert(ctx context.Context, deploymentID, log string) error {
+	query := `
+		INSERT INTO log_events (event_id, deployment_id, log, timestamp)
+		VALUES (?, ?, ?, ?)
+	`
+
+	eventID := generateEventID()
+	timestamp := time.Now()
+
+	_, err := s.repo.ExecContext(ctx, query, eventID, deploymentID, log, timestamp)
+	if err != nil {
+		return fmt.Errorf("failed to insert log: %w", err)
+	}
+
+	return nil
+}
+
+// generateEventID generates a simple event ID
+func generateEventID() string {
+	return fmt.Sprintf("%d-%d", time.Now().UnixNano(), time.Now().Unix())
+}

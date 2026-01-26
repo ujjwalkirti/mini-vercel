@@ -34,9 +34,10 @@ func Routes(db *sql.DB, jwks *auth.JWKSCache) chi.Router {
 		log.Printf("Warning: Failed to load AWS config: %v", err)
 	} else {
 		// Parse subnets (comma-separated)
+		ecsConfig := appConfig.GetECSConfig()
 		subnets := []string{}
-		if appConfig.ECS_SUBNETS != "" {
-			subnets = strings.Split(appConfig.ECS_SUBNETS, ",")
+		if ecsConfig.Subnets != "" {
+			subnets = strings.Split(ecsConfig.Subnets, ",")
 			for i := range subnets {
 				subnets[i] = strings.TrimSpace(subnets[i])
 			}
@@ -44,15 +45,17 @@ func Routes(db *sql.DB, jwks *auth.JWKSCache) chi.Router {
 
 		ecsService = ecs.New(
 			awsCfg,
-			appConfig.ECS_CLUSTER,
-			appConfig.ECS_TASK_DEFINITION,
+			ecsConfig.Cluster,
+			ecsConfig.TaskDefinition,
 			subnets,
-			appConfig.ECS_SECURITY_GROUP,
-			appConfig.ECS_ASSIGN_PUBLIC_IP,
-			appConfig.ECS_LAUNCH_TYPE,
-			appConfig.ECS_IMAGE_NAME,
-			appConfig.ECS_COUNT,
+			ecsConfig.SecurityGroup,
+			ecsConfig.AssignPublicIP,
+			ecsConfig.LaunchType,
+			ecsConfig.ImageName,
+			ecsConfig.Count,
 		)
+
+		log.Printf("ECS service initialized with config.")
 	}
 
 	// Initialize logs service

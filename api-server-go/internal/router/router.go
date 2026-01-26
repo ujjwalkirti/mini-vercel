@@ -45,7 +45,7 @@ func New(db *sql.DB) *chi.Mux {
 
 	// Protected routes (auth required)
 	r.Mount("/projects", project.Routes(db, jwks))
-	r.Mount("/", deployment.Routes(db, jwks)) // Mounts /deploy and /deployments/* routes
+	r.Mount("/", deployment.Routes(db, jwks))
 
 	return r
 }

@@ -85,3 +85,8 @@ func (r *Repository) DeleteByProjectID(ctx context.Context, projectID string) er
 	_, err := r.db.ExecContext(ctx, `DELETE FROM deployments WHERE project_id = $1`, projectID)
 	return err
 }
+
+func (r *Repository) UpdateStatus(ctx context.Context, deploymentID string, status domain.Status) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE deployments SET status = $1 WHERE id = $2`, status, deploymentID)
+	return err
+}

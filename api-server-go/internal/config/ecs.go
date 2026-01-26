@@ -5,16 +5,16 @@ import (
 	"strconv"
 )
 
-var (
-	ECS_CLUSTER           = os.Getenv("ECS_CLUSTER")
-	ECS_TASK_DEFINITION   = os.Getenv("ECS_TASK_DEFINITION")
-	ECS_SUBNETS           = os.Getenv("ECS_SUBNETS")
-	ECS_SECURITY_GROUP    = os.Getenv("ECS_SECURITY_GROUP")
-	ECS_ASSIGN_PUBLIC_IP  = getEnvOrDefault("ECS_ASSIGN_PUBLIC_IP", "ENABLED")
-	ECS_IMAGE_NAME        = os.Getenv("ECS_IMAGE_NAME")
-	ECS_LAUNCH_TYPE       = getEnvOrDefault("ECS_LAUNCH_TYPE", "FARGATE")
-	ECS_COUNT             = getEnvAsInt("ECS_COUNT", 1)
-)
+type ECSConfig struct {
+	Cluster        string
+	TaskDefinition string
+	Subnets        string
+	SecurityGroup  string
+	AssignPublicIP string
+	ImageName      string
+	LaunchType     string
+	Count          int
+}
 
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
@@ -30,4 +30,17 @@ func getEnvAsInt(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+func GetECSConfig() ECSConfig {
+	return ECSConfig{
+		Cluster:        getEnvOrDefault("ECS_CLUSTER_NAME", ""),
+		TaskDefinition: getEnvOrDefault("ECS_TASK_DEFINITION", ""),
+		Subnets:        getEnvOrDefault("ECS_SUBNETS", ""),
+		SecurityGroup:  getEnvOrDefault("ECS_SECURITY_GROUPS", ""),
+		AssignPublicIP: getEnvOrDefault("ECS_ASSIGN_PUBLIC_IP", "ENABLED"),
+		ImageName:      getEnvOrDefault("ECS_IMAGE_NAME", ""),
+		LaunchType:     getEnvOrDefault("ECS_LAUNCH_TYPE", "FARGATE"),
+		Count:          getEnvAsInt("ECS_COUNT", 1),
+	}
 }

@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
+	deploymentdomain "github.com/ujjwalkirti/mini-vercel-api-server/internal/domain/deployment"
 	domain "github.com/ujjwalkirti/mini-vercel-api-server/internal/domain/project"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/utils"
 )
@@ -42,21 +44,56 @@ func (r *Repository) Create(ctx context.Context, p *domain.Project) error {
 }
 
 func (r *Repository) ListByUser(ctx context.Context, userID string) ([]domain.Project, error) {
-	rows, err := r.db.QueryContext(
-		ctx,
-		`SELECT id, name, git_url, subdomain, custom_domain, user_id, created_at, updated_at
-		 FROM projects WHERE user_id = $1`,
-		userID,
-	)
+	query := `
+		WITH latest_deployments AS (
+			SELECT DISTINCT ON (project_id)
+				id,
+				project_id,
+				status,
+				created_at,
+				updated_at
+			FROM deployments
+			ORDER BY project_id, created_at DESC
+		)
+		SELECT
+			p.id,
+			p.name,
+			p.git_url,
+			p.subdomain,
+			p.custom_domain,
+			p.user_id,
+			p.created_at,
+			p.updated_at,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', d.id,
+						'projectId', d.project_id,
+						'status', d.status,
+						'createdAt', d.created_at,
+						'updatedAt', d.updated_at
+					)
+				) FILTER (WHERE d.id IS NOT NULL),
+				'[]'::json
+			) AS deployments
+		FROM projects p
+		LEFT JOIN latest_deployments d ON p.id = d.project_id
+		WHERE p.user_id = $1
+		GROUP BY p.id, p.name, p.git_url, p.subdomain, p.custom_domain, p.user_id, p.created_at, p.updated_at
+		ORDER BY p.created_at DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	// Initialize as empty slice to ensure JSON serializes to [] instead of null
 	projects := make([]domain.Project, 0)
 	for rows.Next() {
 		var p domain.Project
+		var deploymentsJSON []byte
+
 		if err := rows.Scan(
 			&p.ID,
 			&p.Name,
@@ -66,9 +103,22 @@ func (r *Repository) ListByUser(ctx context.Context, userID string) ([]domain.Pr
 			&p.UserID,
 			&p.CreatedAt,
 			&p.UpdatedAt,
+			&deploymentsJSON,
 		); err != nil {
 			return nil, err
 		}
+
+		// Always initialize as empty array
+		p.Deployments = make([]deploymentdomain.Deployment, 0)
+
+		// Only unmarshal if we have actual deployment data
+		if len(deploymentsJSON) > 0 && string(deploymentsJSON) != "[]" && string(deploymentsJSON) != "null" {
+			if err := json.Unmarshal(deploymentsJSON, &p.Deployments); err != nil {
+				// If unmarshal fails, leave deployments as empty array
+				p.Deployments = make([]deploymentdomain.Deployment, 0)
+			}
+		}
+
 		projects = append(projects, p)
 	}
 
@@ -76,9 +126,39 @@ func (r *Repository) ListByUser(ctx context.Context, userID string) ([]domain.Pr
 }
 
 func (r *Repository) GetByIDAndUserID(ctx context.Context, projectID, userID string) (domain.Project, error) {
+	query := `
+		SELECT
+			p.id,
+			p.name,
+			p.git_url,
+			p.subdomain,
+			p.custom_domain,
+			p.user_id,
+			p.created_at,
+			p.updated_at,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', d.id,
+						'projectId', d.project_id,
+						'status', d.status,
+						'createdAt', d.created_at,
+						'updatedAt', d.updated_at
+					)
+					ORDER BY d.created_at DESC
+				) FILTER (WHERE d.id IS NOT NULL),
+				'[]'::json
+			) AS deployments
+		FROM projects p
+		LEFT JOIN deployments d ON p.id = d.project_id
+		WHERE p.id = $1 AND p.user_id = $2
+		GROUP BY p.id, p.name, p.git_url, p.subdomain, p.custom_domain, p.user_id, p.created_at, p.updated_at
+	`
+
 	var p domain.Project
-	err := r.db.QueryRowContext(ctx, `SELECT id, name, git_url, subdomain, custom_domain, user_id, created_at, updated_at
-		FROM projects WHERE id = $1 AND user_id = $2`, projectID, userID).Scan(
+	var deploymentsJSON []byte
+
+	err := r.db.QueryRowContext(ctx, query, projectID, userID).Scan(
 		&p.ID,
 		&p.Name,
 		&p.GitURL,
@@ -87,9 +167,25 @@ func (r *Repository) GetByIDAndUserID(ctx context.Context, projectID, userID str
 		&p.UserID,
 		&p.CreatedAt,
 		&p.UpdatedAt,
+		&deploymentsJSON,
 	)
 
-	return p, err
+	if err != nil {
+		return p, err
+	}
+
+	// Always initialize as empty array
+	p.Deployments = make([]deploymentdomain.Deployment, 0)
+
+	// Only unmarshal if we have actual deployment data
+	if len(deploymentsJSON) > 0 && string(deploymentsJSON) != "[]" && string(deploymentsJSON) != "null" {
+		if err := json.Unmarshal(deploymentsJSON, &p.Deployments); err != nil {
+			// If unmarshal fails, leave deployments as empty array
+			p.Deployments = make([]deploymentdomain.Deployment, 0)
+		}
+	}
+
+	return p, nil
 }
 
 func (r *Repository) Delete(ctx context.Context, projectID string) error {
