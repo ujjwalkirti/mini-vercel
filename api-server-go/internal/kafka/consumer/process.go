@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"strings"
 
 	"github.com/IBM/sarama"
@@ -39,8 +40,7 @@ func (p *Processor) Process(msg *sarama.ConsumerMessage) error {
 	ctx := context.Background()
 	logLower := strings.ToLower(event.Log)
 
-	// ---- status transitions (exact TS logic) ----
-
+	// ---- status transitions ----
 	if logLower == "info: starting build pipeline..." {
 		if err := p.deploymentSvc.MarkInProgress(ctx, event.DeploymentID); err != nil {
 			return err
@@ -62,8 +62,19 @@ func (p *Processor) Process(msg *sarama.ConsumerMessage) error {
 
 	// ---- always insert log ----
 	if err := p.logSvc.Insert(ctx, event.DeploymentID, event.Log); err != nil {
-		return err
+		// Log the error but don't fail message processing
+		// This prevents message reprocessing and allows other logs to continue
+		log.Printf("ERROR: Failed to insert log for deployment %s: %v | Log preview: %q",
+			event.DeploymentID, err, truncateString(event.Log, 100))
 	}
 
 	return nil
+}
+
+// truncateString truncates a string to maxLen characters
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
