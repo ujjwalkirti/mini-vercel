@@ -1,0 +1,390 @@
+{
+	"info": {
+		"_postman_id": "mini-vercel-api-collection",
+		"name": "Mini Vercel - API Server & Reverse Proxy",
+		"description": "Complete Postman collection for Mini Vercel Go-based API server and reverse proxy endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "api_base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "proxy_base_url",
+			"value": "http://localhost:8001",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "project_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "deployment_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "API Server",
+			"item": [
+				{
+					"name": "Health",
+					"item": [
+						{
+							"name": "Health Check",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{api_base_url}}/health",
+									"host": ["{{api_base_url}}"],
+									"path": ["health"]
+								},
+								"description": "Check API server health status"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Projects",
+					"item": [
+						{
+							"name": "Get All Projects",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{api_base_url}}/projects",
+									"host": ["{{api_base_url}}"],
+									"path": ["projects"]
+								},
+								"description": "Get all projects for the authenticated user with their most recent deployments"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Project by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{api_base_url}}/projects/{{project_id}}",
+									"host": ["{{api_base_url}}"],
+									"path": ["projects", "{{project_id}}"]
+								},
+								"description": "Get a specific project by ID with all its deployments. Requires project ownership."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Project",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.data && jsonData.data.id) {",
+											"        pm.collectionVariables.set(\"project_id\", jsonData.data.id);",
+											"        console.log(\"Project ID saved: \" + jsonData.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"My Awesome Project\",\n  \"github_url\": \"https://github.com/username/repository\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{api_base_url}}/projects",
+									"host": ["{{api_base_url}}"],
+									"path": ["projects"]
+								},
+								"description": "Create a new project. Automatically generates a random subdomain."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Project",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Updated Project Name\",\n  \"github_url\": \"https://github.com/username/new-repository\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{api_base_url}}/projects/{{project_id}}",
+									"host": ["{{api_base_url}}"],
+									"path": ["projects", "{{project_id}}"]
+								},
+								"description": "Update an existing project. Requires project ownership."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Project",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{api_base_url}}/projects/{{project_id}}",
+									"host": ["{{api_base_url}}"],
+									"path": ["projects", "{{project_id}}"]
+								},
+								"description": "Delete a project and all its deployments. Requires project ownership."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Deployments",
+					"item": [
+						{
+							"name": "Create Deployment",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.data && jsonData.data.deploymentId) {",
+											"        pm.collectionVariables.set(\"deployment_id\", jsonData.data.deploymentId);",
+											"        console.log(\"Deployment ID saved: \" + jsonData.data.deploymentId);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"project_id\": \"{{project_id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{api_base_url}}/deploy",
+									"host": ["{{api_base_url}}"],
+									"path": ["deploy"]
+								},
+								"description": "Create a new deployment and trigger the build process. Queues the deployment to AWS ECS."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Deployments by Project",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{api_base_url}}/projects/{{project_id}}/deployments",
+									"host": ["{{api_base_url}}"],
+									"path": ["projects", "{{project_id}}", "deployments"]
+								},
+								"description": "Get all deployments for a specific project. Requires project ownership."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Deployment by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{api_base_url}}/deployments/{{deployment_id}}",
+									"host": ["{{api_base_url}}"],
+									"path": ["deployments", "{{deployment_id}}"]
+								},
+								"description": "Get a specific deployment. Requires ownership of the parent project."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Deployment Logs",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{api_base_url}}/deployments/{{deployment_id}}/logs",
+									"host": ["{{api_base_url}}"],
+									"path": ["deployments", "{{deployment_id}}", "logs"]
+								},
+								"description": "Get logs for a specific deployment from ClickHouse. Requires ownership of the parent project."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Reverse Proxy",
+			"item": [
+				{
+					"name": "Proxy Request - Root",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Host",
+								"value": "your-subdomain.localhost:8001",
+								"type": "text",
+								"description": "Replace 'your-subdomain' with actual project subdomain"
+							}
+						],
+						"url": {
+							"raw": "{{proxy_base_url}}/",
+							"host": ["{{proxy_base_url}}"],
+							"path": [""]
+						},
+						"description": "Proxy request to the root of a deployed project. The subdomain is extracted from the Host header and used to route to the correct deployment in R2 storage."
+					},
+					"response": []
+				},
+				{
+					"name": "Proxy Request - Specific Path",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Host",
+								"value": "your-subdomain.localhost:8001",
+								"type": "text",
+								"description": "Replace 'your-subdomain' with actual project subdomain"
+							}
+						],
+						"url": {
+							"raw": "{{proxy_base_url}}/assets/main.js",
+							"host": ["{{proxy_base_url}}"],
+							"path": ["assets", "main.js"]
+						},
+						"description": "Proxy request to a specific file path in the deployed project. The reverse proxy will fetch the file from R2 storage based on the subdomain."
+					},
+					"response": []
+				},
+				{
+					"name": "Proxy Request - Example with Subdomain Variable",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{project_subdomain}}.localhost:8001/",
+							"protocol": "http",
+							"host": ["{{project_subdomain}}", "localhost"],
+							"port": "8001",
+							"path": [""]
+						},
+						"description": "Alternative way to test the reverse proxy using a subdomain variable. Set 'project_subdomain' in collection variables to your project's subdomain."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

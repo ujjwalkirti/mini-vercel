@@ -1,0 +1,30 @@
+# Ignore development files
+.env
+.env.*
+!.env.example
+
+# Ignore build artifacts
+tmp/
+bin/
+*.exe
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore air config (hot reload tool)
+.air.toml
+
+# Ignore documentation
+*.md
+!README.md
+
+# Ignore test files
+*_test.go
+
+# Ignore log files
+*.log
