@@ -43,6 +43,10 @@ func (h *Handler) GetProjects(w http.ResponseWriter, r *http.Request) {
 	projects, err := h.repo.ListByUser(r.Context(), user.ID)
 
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			utils.NotFound(w, "Projects not found "+err.Error())
+			return
+		}
 		utils.InternalServerError(w, "Failed to fetch projects")
 		return
 	}
