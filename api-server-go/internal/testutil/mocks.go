@@ -1,5 +1,11 @@
 package testutil
 
+// This file contains mock implementations for testing.
+// Uncomment and implement the mocks as needed when writing tests.
+
+// When you're ready to implement mocks, uncomment the imports and implementations below.
+
+/*
 import (
 	"context"
 
@@ -184,3 +190,4 @@ func CreateMockDeployments(count int, projectID string) []*deployment.Deployment
 	// TODO: Return slice
 	return nil
 }
+*/

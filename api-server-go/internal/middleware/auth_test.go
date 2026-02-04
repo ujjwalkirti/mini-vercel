@@ -1,23 +1,53 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/auth"
 )
 
 // TestAuthMiddleware tests the authentication middleware
 func TestAuthMiddleware(t *testing.T) {
 	t.Run("should return 401 when Authorization header is missing", func(t *testing.T) {
-		// TODO: Create mock JWKS cache
-		// TODO: Create middleware with JWKS
-		// TODO: Create test request without Authorization header
-		// TODO: Create test handler that should not be called
-		// TODO: Call middleware
-		// TODO: Assert status code is 401
-		// TODO: Assert error message is "Unauthorized"
-		// TODO: Assert test handler was not called
+		// Arrange - Create mock JWKS cache (nil is fine for this test as auth check happens before JWKS usage)
+		var jwks *auth.JWKSCache = nil
+
+		// Create middleware with JWKS
+		middleware := AuthMiddleware(jwks)
+
+		// Create test handler that should not be called
+		handlerCalled := false
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handlerCalled = true
+			w.WriteHeader(http.StatusOK)
+		})
+
+		// Wrap test handler with middleware
+		wrappedHandler := middleware(testHandler)
+
+		// Create test request without Authorization header
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		rr := httptest.NewRecorder()
+
+		// Act - Call middleware
+		wrappedHandler.ServeHTTP(rr, req)
+
+		// Assert - Assert status code is 401
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status code %d, got %d", http.StatusUnauthorized, rr.Code)
+		}
+
+		// Assert error message is "Unauthorized"
+		if rr.Body.String() != "Unauthorized\n" {
+			t.Errorf("Expected error message 'Unauthorized', got '%s'", rr.Body.String())
+		}
+
+		// Assert test handler was not called
+		if handlerCalled {
+			t.Error("Expected handler to not be called when authorization is missing")
+		}
 	})
 
 	t.Run("should return 401 when Authorization header does not start with Bearer", func(t *testing.T) {

@@ -1,13 +1,13 @@
 package ecs
 
 import (
-	"context"
 	"testing"
 )
 
 // TestRunTask tests running an ECS task
 func TestRunTask(t *testing.T) {
 	t.Run("should run task with correct configuration", func(t *testing.T) {
+		// Skip this test for now - requires AWS SDK mocking
 		// TODO: Create mock AWS ECS client
 		// TODO: Mock RunTask API call
 		// TODO: Create ECS service with test config
@@ -15,6 +15,7 @@ func TestRunTask(t *testing.T) {
 		// TODO: Assert no error
 		// TODO: Assert task ARN is returned
 		// TODO: Assert RunTask was called with correct parameters
+		t.Skip("Requires AWS SDK mocking - implement with mockgen or AWS SDK mocks")
 	})
 
 	t.Run("should include all environment variables", func(t *testing.T) {

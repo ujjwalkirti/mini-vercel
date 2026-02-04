@@ -1,19 +1,20 @@
 package deployment
 
 import (
-	"context"
 	"testing"
 )
 
 // TestGetByProjectID tests getting deployments by project ID
 func TestGetByProjectID(t *testing.T) {
 	t.Run("should return all deployments for project", func(t *testing.T) {
+		// Skip this test for now - requires database setup (sqlmock or dockertest)
 		// TODO: Create mock database with test deployments
 		// TODO: Create repository
 		// TODO: Call GetByProjectID with project ID and user ID
 		// TODO: Assert no error
 		// TODO: Assert correct number of deployments returned
 		// TODO: Assert all deployments belong to project
+		t.Skip("Requires database mocking with sqlmock or integration test setup")
 	})
 
 	t.Run("should return empty array when project has no deployments", func(t *testing.T) {

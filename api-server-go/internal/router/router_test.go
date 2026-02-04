@@ -1,6 +1,7 @@
 package router
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,9 +10,16 @@ import (
 // TestRouterSetup tests the router initialization
 func TestRouterSetup(t *testing.T) {
 	t.Run("should create router successfully", func(t *testing.T) {
-		// TODO: Create mock database connection
-		// TODO: Call New() to create router
-		// TODO: Assert router is not nil
+		// Arrange - Create mock database connection (nil for basic test)
+		var db *sql.DB = nil
+
+		// Act - Call New() to create router
+		router := New(db)
+
+		// Assert - Assert router is not nil
+		if router == nil {
+			t.Fatal("Expected router to be created, got nil")
+		}
 	})
 
 	t.Run("should have CORS middleware configured", func(t *testing.T) {

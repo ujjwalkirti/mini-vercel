@@ -1,24 +1,38 @@
 package project
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/go-chi/chi/v5"
 )
 
 // TestGetProjects tests GET /projects endpoint
 func TestGetProjects(t *testing.T) {
 	t.Run("should return 401 when user is not authenticated", func(t *testing.T) {
-		// TODO: Create handler with mock repositories
-		// TODO: Create request without authentication context
-		// TODO: Call GetProjects handler
-		// TODO: Assert status code is 401
-		// TODO: Assert error message
+		// Arrange - Create handler with mock repositories (nil for now as auth check happens first)
+		handler := NewHandler(nil, nil)
+
+		// Create request without authentication context
+		req := httptest.NewRequest(http.MethodGet, "/projects", nil)
+		rr := httptest.NewRecorder()
+
+		// Act - Call GetProjects handler
+		handler.GetProjects(rr, req)
+
+		// Assert - Assert status code is 401
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status code %d, got %d", http.StatusUnauthorized, rr.Code)
+		}
+
+		// Assert error message
+		var response map[string]interface{}
+		json.NewDecoder(rr.Body).Decode(&response)
+
+		if success, ok := response["success"].(bool); !ok || success {
+			t.Error("Expected success to be false for unauthorized request")
+		}
 	})
 
 	t.Run("should return empty array when user has no projects", func(t *testing.T) {

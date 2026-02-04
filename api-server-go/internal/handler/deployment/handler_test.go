@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,11 +11,28 @@ import (
 // TestGetDeploymentsByProject tests GET /projects/:projectId/deployments endpoint
 func TestGetDeploymentsByProject(t *testing.T) {
 	t.Run("should return 401 when user is not authenticated", func(t *testing.T) {
-		// TODO: Create handler with mock repositories and services
-		// TODO: Create request without authentication context
-		// TODO: Call GetDeploymentsByProject handler
-		// TODO: Assert status code is 401
-		// TODO: Assert error message
+		// Arrange - Create handler with mock repositories and services
+		handler := NewHandler(nil, nil, nil, nil)
+
+		// Create request without authentication context
+		req := httptest.NewRequest(http.MethodGet, "/projects/test-id", nil)
+		rr := httptest.NewRecorder()
+
+		// Act - Call GetDeploymentsByProject handler
+		handler.GetDeploymentsByProject(rr, req)
+
+		// Assert - Assert status code is 401
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status code %d, got %d", http.StatusUnauthorized, rr.Code)
+		}
+
+		// Assert error message
+		var response map[string]interface{}
+		json.NewDecoder(rr.Body).Decode(&response)
+
+		if success, ok := response["success"].(bool); !ok || success {
+			t.Error("Expected success to be false for unauthorized request")
+		}
 	})
 
 	t.Run("should return 400 when project ID is invalid", func(t *testing.T) {

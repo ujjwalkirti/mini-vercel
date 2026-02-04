@@ -1,13 +1,13 @@
 package logs
 
 import (
-	"context"
 	"testing"
 )
 
 // TestGetDeploymentLogs tests retrieving deployment logs
 func TestGetDeploymentLogs(t *testing.T) {
 	t.Run("should return logs for valid deployment ID", func(t *testing.T) {
+		// Skip this test for now - requires mock repository implementation
 		// TODO: Create mock log repository
 		// TODO: Mock repository to return sample logs
 		// TODO: Create logs service with mock repository
@@ -15,6 +15,7 @@ func TestGetDeploymentLogs(t *testing.T) {
 		// TODO: Assert no error
 		// TODO: Assert logs are returned
 		// TODO: Assert logs have correct format
+		t.Skip("Requires mock log repository - implement in testutil/mocks.go first")
 	})
 
 	t.Run("should return empty array when no logs exist", func(t *testing.T) {

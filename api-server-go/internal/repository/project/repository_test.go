@@ -1,13 +1,13 @@
 package project
 
 import (
-	"context"
 	"testing"
 )
 
 // TestListByUser tests listing projects by user ID
 func TestListByUser(t *testing.T) {
 	t.Run("should return all projects for user", func(t *testing.T) {
+		// Skip this test for now - requires database setup (sqlmock or dockertest)
 		// TODO: Create mock database connection
 		// TODO: Set up test data in database
 		// TODO: Create repository
@@ -15,6 +15,7 @@ func TestListByUser(t *testing.T) {
 		// TODO: Assert no error
 		// TODO: Assert correct number of projects returned
 		// TODO: Assert all projects belong to user
+		t.Skip("Requires database mocking with sqlmock or integration test setup")
 	})
 
 	t.Run("should return empty array when user has no projects", func(t *testing.T) {
