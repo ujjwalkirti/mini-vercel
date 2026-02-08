@@ -1,241 +1,488 @@
 package project
 
 import (
+	"context"
+	"database/sql"
+	"encoding/json"
 	"testing"
+	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	deploymentdomain "github.com/ujjwalkirti/mini-vercel-api-server/internal/domain/deployment"
+	domain "github.com/ujjwalkirti/mini-vercel-api-server/internal/domain/project"
 )
+
+// TestCreate tests creating a new project
+func TestCreate(t *testing.T) {
+	t.Run("should create project with all fields", func(t *testing.T) {
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		customDomain := "custom.example.com"
+		project := &domain.Project{
+			ID:           "project-123",
+			Name:         "Test Project",
+			GitURL:       "https://github.com/user/repo",
+			SubDomain:    "test-subdomain",
+			CustomDomain: &customDomain,
+			UserID:       "user-456",
+		}
+
+		mock.ExpectExec("INSERT INTO projects").
+			WithArgs(project.ID, project.Name, project.GitURL, project.SubDomain, project.CustomDomain, project.UserID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Act
+		err = repo.Create(context.Background(), project)
+
+		// Assert
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("should generate UUID for new project", func(t *testing.T) {
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		project := &domain.Project{
+			ID:           "", // Empty ID should be generated
+			Name:         "Test Project",
+			GitURL:       "https://github.com/user/repo",
+			SubDomain:    "test-subdomain",
+			CustomDomain: nil,
+			UserID:       "user-456",
+		}
+
+		mock.ExpectExec("INSERT INTO projects").
+			WithArgs(sqlmock.AnyArg(), project.Name, project.GitURL, project.SubDomain, project.CustomDomain, project.UserID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Act
+		err = repo.Create(context.Background(), project)
+
+		// Assert
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if project.ID == "" {
+			t.Error("expected ID to be generated")
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("should return error when database insert fails", func(t *testing.T) {
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		project := &domain.Project{
+			ID:        "project-123",
+			Name:      "Test Project",
+			GitURL:    "https://github.com/user/repo",
+			SubDomain: "test-subdomain",
+			UserID:    "user-456",
+		}
+
+		mock.ExpectExec("INSERT INTO projects").
+			WithArgs(project.ID, project.Name, project.GitURL, project.SubDomain, project.CustomDomain, project.UserID).
+			WillReturnError(sql.ErrConnDone)
+
+		// Act
+		err = repo.Create(context.Background(), project)
+
+		// Assert
+		if err == nil {
+			t.Error("expected error but got nil")
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("should handle duplicate subdomain gracefully", func(t *testing.T) {
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		project := &domain.Project{
+			ID:        "project-123",
+			Name:      "Test Project",
+			GitURL:    "https://github.com/user/repo",
+			SubDomain: "duplicate-subdomain",
+			UserID:    "user-456",
+		}
+
+		// Simulate unique constraint violation
+		mock.ExpectExec("INSERT INTO projects").
+			WithArgs(project.ID, project.Name, project.GitURL, project.SubDomain, project.CustomDomain, project.UserID).
+			WillReturnError(sql.ErrNoRows) // In real scenario, this would be a unique constraint error
+
+		// Act
+		err = repo.Create(context.Background(), project)
+
+		// Assert
+		if err == nil {
+			t.Error("expected error for duplicate subdomain")
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
+	})
+}
 
 // TestListByUser tests listing projects by user ID
 func TestListByUser(t *testing.T) {
 	t.Run("should return all projects for user", func(t *testing.T) {
-		// Skip this test for now - requires database setup (sqlmock or dockertest)
-		// TODO: Create mock database connection
-		// TODO: Set up test data in database
-		// TODO: Create repository
-		// TODO: Call ListByUser with user ID
-		// TODO: Assert no error
-		// TODO: Assert correct number of projects returned
-		// TODO: Assert all projects belong to user
-		t.Skip("Requires database mocking with sqlmock or integration test setup")
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		userID := "user-123"
+		now := time.Now()
+
+		deployments := []deploymentdomain.Deployment{
+			{ID: "deploy-1", ProjectID: "project-1", Status: "READY"},
+		}
+		deploymentsJSON, _ := json.Marshal(deployments)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "name", "git_url", "subdomain", "custom_domain", "user_id", "created_at", "updated_at", "deployments",
+		}).AddRow("project-1", "Project 1", "https://github.com/user/repo1", "subdomain1", "", userID, now, now, deploymentsJSON).
+			AddRow("project-2", "Project 2", "https://github.com/user/repo2", "subdomain2", "", userID, now, now, []byte("[]"))
+
+		mock.ExpectQuery("WITH latest_deployments AS").
+			WithArgs(userID).
+			WillReturnRows(rows)
+
+		// Act
+		result, err := repo.ListByUser(context.Background(), userID)
+
+		// Assert
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if len(result) != 2 {
+			t.Errorf("expected 2 projects, got %d", len(result))
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 
 	t.Run("should return empty array when user has no projects", func(t *testing.T) {
-		// TODO: Create mock database connection
-		// TODO: Create repository
-		// TODO: Call ListByUser with user ID that has no projects
-		// TODO: Assert no error
-		// TODO: Assert empty array is returned (not nil)
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		userID := "user-123"
+
+		rows := sqlmock.NewRows([]string{
+			"id", "name", "git_url", "subdomain", "custom_domain", "user_id", "created_at", "updated_at", "deployments",
+		})
+
+		mock.ExpectQuery("WITH latest_deployments AS").
+			WithArgs(userID).
+			WillReturnRows(rows)
+
+		// Act
+		result, err := repo.ListByUser(context.Background(), userID)
+
+		// Assert
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if result == nil {
+			t.Error("expected non-nil result")
+		}
+		if len(result) != 0 {
+			t.Errorf("expected empty array, got %d items", len(result))
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 
 	t.Run("should return error when database query fails", func(t *testing.T) {
-		// TODO: Create mock database that returns error
-		// TODO: Create repository
-		// TODO: Call ListByUser
-		// TODO: Assert error is returned
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		userID := "user-123"
+
+		mock.ExpectQuery("WITH latest_deployments AS").
+			WithArgs(userID).
+			WillReturnError(sql.ErrConnDone)
+
+		// Act
+		_, err = repo.ListByUser(context.Background(), userID)
+
+		// Assert
+		if err == nil {
+			t.Error("expected error but got nil")
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 
 	t.Run("should include most recent deployment for each project", func(t *testing.T) {
-		// TODO: Create mock database with projects and deployments
-		// TODO: Create repository
-		// TODO: Call ListByUser
-		// TODO: Assert each project has recent_deployment field
-		// TODO: Assert deployment is the most recent one
-	})
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
 
-	t.Run("should order projects by created_at desc", func(t *testing.T) {
-		// TODO: Create mock database with multiple projects
-		// TODO: Create repository
-		// TODO: Call ListByUser
-		// TODO: Assert projects are ordered newest first
+		repo := New(db)
+		userID := "user-123"
+		now := time.Now()
+
+		deployments := []deploymentdomain.Deployment{
+			{ID: "deploy-latest", ProjectID: "project-1", Status: "READY", CreatedAt: now},
+		}
+		deploymentsJSON, _ := json.Marshal(deployments)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "name", "git_url", "subdomain", "custom_domain", "user_id", "created_at", "updated_at", "deployments",
+		}).AddRow("project-1", "Project 1", "https://github.com/user/repo1", "subdomain1", "", userID, now, now, deploymentsJSON)
+
+		mock.ExpectQuery("WITH latest_deployments AS").
+			WithArgs(userID).
+			WillReturnRows(rows)
+
+		// Act
+		result, err := repo.ListByUser(context.Background(), userID)
+
+		// Assert
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if len(result) != 1 {
+			t.Fatalf("expected 1 project, got %d", len(result))
+		}
+		if len(result[0].Deployments) == 0 {
+			t.Error("expected project to have deployments")
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 }
 
 // TestGetByIDAndUserID tests getting a project by ID and user ID
 func TestGetByIDAndUserID(t *testing.T) {
 	t.Run("should return project when it exists and user owns it", func(t *testing.T) {
-		// TODO: Create mock database with test project
-		// TODO: Create repository
-		// TODO: Call GetByIDAndUserID with valid ID and user ID
-		// TODO: Assert no error
-		// TODO: Assert project is returned
-		// TODO: Assert all fields are populated
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		projectID := "project-123"
+		userID := "user-456"
+		now := time.Now()
+
+		rows := sqlmock.NewRows([]string{
+			"id", "name", "git_url", "subdomain", "custom_domain", "user_id", "created_at", "updated_at", "deployments",
+		}).AddRow(projectID, "Test Project", "https://github.com/user/repo", "subdomain", "", userID, now, now, []byte("[]"))
+
+		mock.ExpectQuery("SELECT").
+			WithArgs(projectID, userID).
+			WillReturnRows(rows)
+
+		// Act
+		result, err := repo.GetByIDAndUserID(context.Background(), projectID, userID)
+
+		// Assert
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if result.ID != projectID {
+			t.Errorf("expected ID %s, got %s", projectID, result.ID)
+		}
+		if result.UserID != userID {
+			t.Errorf("expected UserID %s, got %s", userID, result.UserID)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 
 	t.Run("should return sql.ErrNoRows when project does not exist", func(t *testing.T) {
-		// TODO: Create mock database
-		// TODO: Create repository
-		// TODO: Call GetByIDAndUserID with non-existent ID
-		// TODO: Assert error is sql.ErrNoRows
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		projectID := "nonexistent"
+		userID := "user-456"
+
+		mock.ExpectQuery("SELECT").
+			WithArgs(projectID, userID).
+			WillReturnError(sql.ErrNoRows)
+
+		// Act
+		_, err = repo.GetByIDAndUserID(context.Background(), projectID, userID)
+
+		// Assert
+		if err != sql.ErrNoRows {
+			t.Errorf("expected sql.ErrNoRows, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 
 	t.Run("should return sql.ErrNoRows when project belongs to different user", func(t *testing.T) {
-		// TODO: Create mock database with project owned by different user
-		// TODO: Create repository
-		// TODO: Call GetByIDAndUserID with wrong user ID
-		// TODO: Assert error is sql.ErrNoRows
-	})
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
 
-	t.Run("should return error when database query fails", func(t *testing.T) {
-		// TODO: Create mock database that returns error
-		// TODO: Create repository
-		// TODO: Call GetByIDAndUserID
-		// TODO: Assert error is returned
-	})
-}
+		repo := New(db)
+		projectID := "project-123"
+		wrongUserID := "wrong-user"
 
-// TestCreate tests creating a new project
-func TestCreate(t *testing.T) {
-	t.Run("should create project with all fields", func(t *testing.T) {
-		// TODO: Create mock database
-		// TODO: Create repository
-		// TODO: Create project struct with all fields
-		// TODO: Call Create
-		// TODO: Assert no error
-		// TODO: Assert project ID is generated
-		// TODO: Assert timestamps are set
-	})
+		mock.ExpectQuery("SELECT").
+			WithArgs(projectID, wrongUserID).
+			WillReturnError(sql.ErrNoRows)
 
-	t.Run("should generate UUID for new project", func(t *testing.T) {
-		// TODO: Create mock database
-		// TODO: Create repository
-		// TODO: Create project without ID
-		// TODO: Call Create
-		// TODO: Assert project ID is generated
-		// TODO: Assert ID is valid UUID
-	})
+		// Act
+		_, err = repo.GetByIDAndUserID(context.Background(), projectID, wrongUserID)
 
-	t.Run("should set created_at and updated_at timestamps", func(t *testing.T) {
-		// TODO: Create mock database
-		// TODO: Create repository
-		// TODO: Create project
-		// TODO: Call Create
-		// TODO: Assert created_at is set
-		// TODO: Assert updated_at is set
-		// TODO: Assert timestamps are recent
-	})
-
-	t.Run("should return error when database insert fails", func(t *testing.T) {
-		// TODO: Create mock database that returns error
-		// TODO: Create repository
-		// TODO: Create project
-		// TODO: Call Create
-		// TODO: Assert error is returned
-	})
-
-	t.Run("should handle duplicate subdomain gracefully", func(t *testing.T) {
-		// TODO: Create mock database with existing subdomain
-		// TODO: Create repository
-		// TODO: Create project with duplicate subdomain
-		// TODO: Call Create
-		// TODO: Assert appropriate error (unique constraint violation)
-	})
-}
-
-// TestUpdate tests updating a project
-func TestUpdate(t *testing.T) {
-	t.Run("should update project fields", func(t *testing.T) {
-		// TODO: Create mock database with existing project
-		// TODO: Create repository
-		// TODO: Update project fields (name, git_url)
-		// TODO: Call Update
-		// TODO: Assert no error
-		// TODO: Verify fields were updated in database
-	})
-
-	t.Run("should update updated_at timestamp", func(t *testing.T) {
-		// TODO: Create mock database with existing project
-		// TODO: Note original updated_at
-		// TODO: Create repository
-		// TODO: Call Update
-		// TODO: Assert updated_at is changed
-		// TODO: Assert new timestamp is later than original
-	})
-
-	t.Run("should not update created_at timestamp", func(t *testing.T) {
-		// TODO: Create mock database with existing project
-		// TODO: Note original created_at
-		// TODO: Create repository
-		// TODO: Call Update
-		// TODO: Assert created_at is unchanged
-	})
-
-	t.Run("should return error when project does not exist", func(t *testing.T) {
-		// TODO: Create mock database
-		// TODO: Create repository
-		// TODO: Create project with non-existent ID
-		// TODO: Call Update
-		// TODO: Assert error is returned (sql.ErrNoRows or similar)
-	})
-
-	t.Run("should return error when database update fails", func(t *testing.T) {
-		// TODO: Create mock database that returns error
-		// TODO: Create repository
-		// TODO: Call Update
-		// TODO: Assert error is returned
+		// Assert
+		if err != sql.ErrNoRows {
+			t.Errorf("expected sql.ErrNoRows, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 }
 
 // TestDelete tests deleting a project
 func TestDelete(t *testing.T) {
 	t.Run("should delete project when it exists", func(t *testing.T) {
-		// TODO: Create mock database with existing project
-		// TODO: Create repository
-		// TODO: Call Delete with project ID
-		// TODO: Assert no error
-		// TODO: Verify project is deleted from database
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		projectID := "project-123"
+
+		mock.ExpectExec("DELETE FROM projects WHERE id").
+			WithArgs(projectID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		// Act
+		err = repo.Delete(context.Background(), projectID)
+
+		// Assert
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 
-	t.Run("should return error when project does not exist", func(t *testing.T) {
-		// TODO: Create mock database
-		// TODO: Create repository
-		// TODO: Call Delete with non-existent ID
-		// TODO: Assert error is returned (sql.ErrNoRows or similar)
+	t.Run("should succeed when project does not exist", func(t *testing.T) {
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		projectID := "nonexistent"
+
+		mock.ExpectExec("DELETE FROM projects WHERE id").
+			WithArgs(projectID).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// Act
+		err = repo.Delete(context.Background(), projectID)
+
+		// Assert
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
 
 	t.Run("should return error when database delete fails", func(t *testing.T) {
-		// TODO: Create mock database that returns error
-		// TODO: Create repository
-		// TODO: Call Delete
-		// TODO: Assert error is returned
+		// Arrange
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("failed to create mock db: %v", err)
+		}
+		defer db.Close()
+
+		repo := New(db)
+		projectID := "project-123"
+
+		mock.ExpectExec("DELETE FROM projects WHERE id").
+			WithArgs(projectID).
+			WillReturnError(sql.ErrConnDone)
+
+		// Act
+		err = repo.Delete(context.Background(), projectID)
+
+		// Assert
+		if err == nil {
+			t.Error("expected error but got nil")
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet expectations: %v", err)
+		}
 	})
-
-	t.Run("should handle cascading deletes if configured", func(t *testing.T) {
-		// TODO: Create mock database with project and related deployments
-		// TODO: Create repository
-		// TODO: Call Delete
-		// TODO: Verify related records are handled correctly
-	})
-}
-
-// Helper functions
-
-// createTestDB creates a test database connection
-func createTestDB() interface{} {
-	// TODO: Implement - create test database
-	// TODO: This could use sqlmock or dockertest for real database
-	return nil
-}
-
-// createTestProject creates a sample project for testing
-func createTestProject(userID string) interface{} {
-	// TODO: Implement - create project struct
-	// TODO: Set all required fields
-	return nil
-}
-
-// insertTestProject inserts a project into test database
-func insertTestProject(db interface{}, project interface{}) error {
-	// TODO: Implement - insert project into database
-	return nil
-}
-
-// verifyProjectInDB verifies a project exists in database
-func verifyProjectInDB(t *testing.T, db interface{}, projectID string) {
-	// TODO: Implement - query database
-	// TODO: Assert project exists
-}
-
-// verifyProjectNotInDB verifies a project does not exist in database
-func verifyProjectNotInDB(t *testing.T, db interface{}, projectID string) {
-	// TODO: Implement - query database
-	// TODO: Assert project does not exist
 }

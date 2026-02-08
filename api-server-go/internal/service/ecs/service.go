@@ -13,8 +13,13 @@ type EnvVar struct {
 	Value string
 }
 
+// ECSClient interface for mocking
+type ECSClient interface {
+	RunTask(ctx context.Context, params *ecs.RunTaskInput, optFns ...func(*ecs.Options)) (*ecs.RunTaskOutput, error)
+}
+
 type Service struct {
-	client         *ecs.Client
+	client         ECSClient
 	cluster        string
 	taskDef        string
 	subnets        []string
