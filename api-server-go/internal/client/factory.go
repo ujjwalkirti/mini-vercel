@@ -1,6 +1,7 @@
 package client
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/repository/logs"
@@ -18,7 +19,7 @@ const (
 
 // NewLogRepository creates a new log repository based on the specified type
 // This factory pattern allows easy switching between different storage backends
-func NewLogRepository(repoType LogRepositoryType) (logs.Repository, error) {
+func NewLogRepository(repoType LogRepositoryType, db *sql.DB) (logs.Repository, error) {
 	switch repoType {
 	case ClickHouseRepository:
 		client, err := NewClickHouseClient()
@@ -28,8 +29,10 @@ func NewLogRepository(repoType LogRepositoryType) (logs.Repository, error) {
 		return NewClickHouseAdapter(client.GetConn()), nil
 
 	case PostgresRepository:
-		// Future implementation for PostgreSQL WAL or other backends
-		return nil, fmt.Errorf("postgres repository not yet implemented")
+		if db == nil {
+			return nil, fmt.Errorf("database connection is required")
+		}
+		return NewPostgresAdapter(db), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported repository type: %s", repoType)

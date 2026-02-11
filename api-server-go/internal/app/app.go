@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ujjwalkirti/mini-vercel-api-server/internal/client"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/config"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/db"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/kafka/consumer"
@@ -31,20 +30,12 @@ func New() *App {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 
-	if err := config.InitSupabase(); err != nil {
-		logger.Fatal("Failed to initialize Supabase", zap.Error(err))
-	}
-
-	// Initialize ClickHouse repository for logs
-	logRepo, err := client.NewLogRepository(client.ClickHouseRepository)
+	// Initialize services using singleton pattern
+	logsConfig := config.GetLogsConfig()
+	logSvc, err := logs.GetInstance(database, logsConfig.RepositoryType)
 	if err != nil {
-		logger.Fatal("Failed to create log repository", zap.Error(err))
-	} else {
-		logger.Info("Log repository created successfully")
+		logger.Fatal("Failed to initialize logs service", zap.Error(err))
 	}
-
-	// Initialize services
-	logSvc := logs.New(logRepo)
 	deploymentRepo := repository.New(database)
 	deploymentSvc := deployment.NewDeploymentService(deploymentRepo)
 

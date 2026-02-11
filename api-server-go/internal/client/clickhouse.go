@@ -94,7 +94,7 @@ func connect() (driver.Conn, error) {
 	conn, err := clickhouse.Open(opts)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to open connection: %w", err)
+		return nil, err
 	}
 
 	logger := config.GetLogger()

@@ -13,12 +13,19 @@ import (
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/handler/deployment"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/handler/health"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/handler/project"
+	"go.uber.org/zap"
 )
 
 func New(db *sql.DB) *chi.Mux {
 	r := chi.NewRouter()
 
-	config.InitSupabase()
+	logger := config.GetLogger()
+
+	if err := config.InitSupabase(); err != nil {
+		logger.Fatal("Failed to initialize Supabase", zap.Error(err))
+	} else {
+		logger.Info("Supabase initialized successfully")
+	}
 
 	jwks := auth.NewJWKSCache(
 		config.SupabaseURL+"/auth/v1/.well-known/jwks.json",

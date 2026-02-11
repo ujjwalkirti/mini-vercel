@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/auth"
-	"github.com/ujjwalkirti/mini-vercel-api-server/internal/client"
 	appConfig "github.com/ujjwalkirti/mini-vercel-api-server/internal/config"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/middleware"
 	repository "github.com/ujjwalkirti/mini-vercel-api-server/internal/repository/deployment"
@@ -60,18 +59,11 @@ func Routes(db *sql.DB, jwks *auth.JWKSCache) chi.Router {
 		logger.Info("ECS service initialized with config")
 	}
 
-	// Initialize logs service
-	var logsService *logs.Service
-	clickhouseCfg := appConfig.GetClickHouseConfig()
-	if clickhouseCfg.Host != "" {
-		logRepo, err := client.NewLogRepository(client.ClickHouseRepository)
-		if err != nil {
-			logger.Warn("Failed to initialize ClickHouse client", zap.Error(err))
-		} else {
-			logsService = logs.New(logRepo)
-		}
-	} else {
-		logger.Warn("ClickHouse not configured - logs endpoint will return empty logs")
+	// Get singleton logs service instance
+	// Pass empty string to auto-detect repository type based on config
+	logsService, err := logs.GetInstance(db, "")
+	if err != nil {
+		logger.Warn("Failed to get logs service instance", zap.Error(err))
 	}
 
 	h := NewHandler(repository, projectRepo, ecsService, logsService)
