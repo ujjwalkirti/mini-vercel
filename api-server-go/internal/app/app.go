@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +15,7 @@ import (
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/router"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/deployment"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/logs"
+	"go.uber.org/zap"
 )
 
 type App struct {
@@ -24,21 +24,23 @@ type App struct {
 }
 
 func New() *App {
+	logger := config.GetLogger()
+
 	database, err := db.Connect()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 
 	if err := config.InitSupabase(); err != nil {
-		log.Fatal("Failed to initialize Supabase:", err)
+		logger.Fatal("Failed to initialize Supabase", zap.Error(err))
 	}
 
 	// Initialize ClickHouse repository for logs
 	logRepo, err := client.NewLogRepository(client.ClickHouseRepository)
 	if err != nil {
-		log.Fatal("Failed to create log repository:", err)
+		logger.Fatal("Failed to create log repository", zap.Error(err))
 	} else {
-		log.Println("Log repository created successfully")
+		logger.Info("Log repository created successfully")
 	}
 
 	// Initialize services
@@ -54,7 +56,7 @@ func New() *App {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		log.Println("Starting Kafka consumer...")
+		logger.Info("Starting Kafka consumer...")
 		consumer.StartConsumer(ctx, kafkaConfig, processor)
 	}()
 
@@ -63,7 +65,7 @@ func New() *App {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
-		log.Println("Shutting down Kafka consumer...")
+		logger.Info("Shutting down Kafka consumer...")
 		cancel()
 	}()
 
@@ -86,13 +88,17 @@ func New() *App {
 }
 
 func (a *App) Run() {
-	log.Println("Server starting on", a.server.Addr)
-	log.Fatal(a.server.ListenAndServe())
+	logger := config.GetLogger()
+	logger.Info("Server starting", zap.String("addr", a.server.Addr))
+	if err := a.server.ListenAndServe(); err != nil {
+		logger.Fatal("Server failed", zap.Error(err))
+	}
 }
 
 func (a *App) Shutdown() {
 	if a.cancelKafka != nil {
-		log.Println("Cancelling Kafka consumer context...")
+		logger := config.GetLogger()
+		logger.Info("Cancelling Kafka consumer context...")
 		a.cancelKafka()
 	}
 }

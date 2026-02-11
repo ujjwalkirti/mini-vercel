@@ -8,7 +8,7 @@ import (
 
 func NewTLSConfig() (*tls.Config, error) {
 	path := "ca.pem"
-	if os.Getenv("ENV") == "production" {
+	if os.Getenv("APP_ENV") == "production" {
 		path = "/secrets/kafka-consumer-ca"
 	}
 

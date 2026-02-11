@@ -23,7 +23,7 @@ func NewLogRepository(repoType LogRepositoryType) (logs.Repository, error) {
 	case ClickHouseRepository:
 		client, err := NewClickHouseClient()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create clickhouse client: %w", err)
+			return nil, err
 		}
 		return NewClickHouseAdapter(client.GetConn()), nil
 

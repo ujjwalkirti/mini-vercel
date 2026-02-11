@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -20,7 +19,7 @@ type ClickHouseClient struct {
 func NewClickHouseClient() (*ClickHouseClient, error) {
 	conn, err := connect()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create clickhouse client: %w", err)
+		return nil, err
 	}
 
 	return &ClickHouseClient{
@@ -68,7 +67,8 @@ func connect() (driver.Conn, error) {
 			},
 		},
 		Debugf: func(format string, v ...interface{}) {
-			fmt.Printf(format, v...)
+			logger := config.GetLogger()
+			logger.Debug(fmt.Sprintf(format, v...))
 		},
 	}
 
@@ -95,9 +95,10 @@ func connect() (driver.Conn, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection: %w", err)
-	} else {
-		log.Println("Connected to ClickHouse")
 	}
+
+	logger := config.GetLogger()
+	logger.Info("Connected to ClickHouse")
 
 	if err := conn.Ping(ctx); err != nil {
 		if exception, ok := err.(*clickhouse.Exception); ok {

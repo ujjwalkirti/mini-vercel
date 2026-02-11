@@ -3,13 +3,14 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"strings"
 
 	"github.com/IBM/sarama"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/config"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/domain/buildlog"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/deployment"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/logs"
+	"go.uber.org/zap"
 )
 
 type Processor struct {
@@ -64,8 +65,11 @@ func (p *Processor) Process(msg *sarama.ConsumerMessage) error {
 	if err := p.logSvc.Insert(ctx, event.DeploymentID, event.Log); err != nil {
 		// Log the error but don't fail message processing
 		// This prevents message reprocessing and allows other logs to continue
-		log.Printf("ERROR: Failed to insert log for deployment %s: %v | Log preview: %q",
-			event.DeploymentID, err, truncateString(event.Log, 100))
+		logger := config.GetLogger()
+		logger.Error("Failed to insert log",
+			zap.String("deployment_id", event.DeploymentID),
+			zap.String("log_preview", truncateString(event.Log, 100)),
+			zap.Error(err))
 	}
 
 	return nil

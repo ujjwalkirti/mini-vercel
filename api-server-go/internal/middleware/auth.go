@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/auth"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/config"
+	"go.uber.org/zap"
 )
 
 func AuthMiddleware(jwks *auth.JWKSCache, allowedRoles ...string) func(http.Handler) http.Handler {
@@ -22,7 +23,8 @@ func AuthMiddleware(jwks *auth.JWKSCache, allowedRoles ...string) func(http.Hand
 
 			claims, err := auth.VerifyToken(tokenString, jwks)
 			if err != nil {
-				log.Printf("Error in verifying token: %s", err.Error())
+				logger := config.GetLogger()
+				logger.Error("Error in verifying token", zap.Error(err))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}

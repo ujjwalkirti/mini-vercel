@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/ujjwalkirti/mini-vercel-api-server/internal/config"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/domain/deployment"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/middleware"
 	repository "github.com/ujjwalkirti/mini-vercel-api-server/internal/repository/deployment"
@@ -16,6 +16,7 @@ import (
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/ecs"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/logs"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/utils"
+	"go.uber.org/zap"
 )
 
 type Handler struct {
@@ -156,7 +157,8 @@ func (h *Handler) CreateDeployment(w http.ResponseWriter, r *http.Request) {
 	// TODO: Trigger AWS ECS task to build and deploy
 	_, err = h.ecsService.RunTask(r.Context(), envVars)
 	if err != nil {
-		log.Printf("Failed to trigger ECS task: %v", err)
+		logger := config.GetLogger()
+		logger.Error("Failed to trigger ECS task", zap.Error(err))
 		utils.InternalServerError(w, "Failed to trigger ECS task")
 		return
 	}

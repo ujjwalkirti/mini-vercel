@@ -3,7 +3,6 @@ package deployment
 import (
 	"context"
 	"database/sql"
-	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -16,6 +15,7 @@ import (
 	projectRepository "github.com/ujjwalkirti/mini-vercel-api-server/internal/repository/project"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/ecs"
 	"github.com/ujjwalkirti/mini-vercel-api-server/internal/service/logs"
+	"go.uber.org/zap"
 )
 
 func Routes(db *sql.DB, jwks *auth.JWKSCache) chi.Router {
@@ -27,11 +27,13 @@ func Routes(db *sql.DB, jwks *auth.JWKSCache) chi.Router {
 	repository := repository.New(db)
 	projectRepo := projectRepository.New(db)
 
+	logger := appConfig.GetLogger()
+
 	// Initialize ECS service
 	var ecsService *ecs.Service
 	awsCfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
-		log.Printf("Warning: Failed to load AWS config: %v", err)
+		logger.Warn("Failed to load AWS config", zap.Error(err))
 	} else {
 		// Parse subnets (comma-separated)
 		ecsConfig := appConfig.GetECSConfig()
@@ -55,7 +57,7 @@ func Routes(db *sql.DB, jwks *auth.JWKSCache) chi.Router {
 			ecsConfig.Count,
 		)
 
-		log.Printf("ECS service initialized with config.")
+		logger.Info("ECS service initialized with config")
 	}
 
 	// Initialize logs service
@@ -64,12 +66,12 @@ func Routes(db *sql.DB, jwks *auth.JWKSCache) chi.Router {
 	if clickhouseCfg.Host != "" {
 		logRepo, err := client.NewLogRepository(client.ClickHouseRepository)
 		if err != nil {
-			log.Printf("Warning: Failed to initialize ClickHouse client: %v", err)
+			logger.Warn("Failed to initialize ClickHouse client", zap.Error(err))
 		} else {
 			logsService = logs.New(logRepo)
 		}
 	} else {
-		log.Printf("Warning: ClickHouse not configured - logs endpoint will return empty logs")
+		logger.Warn("ClickHouse not configured - logs endpoint will return empty logs")
 	}
 
 	h := NewHandler(repository, projectRepo, ecsService, logsService)
